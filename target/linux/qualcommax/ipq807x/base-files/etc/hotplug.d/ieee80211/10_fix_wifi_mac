@@ -1,0 +1,20 @@
+#!/bin/ash
+
+[ "$ACTION" = "add" ] || exit 0
+
+PHYNBR=${DEVPATH##*/phy}
+
+[ -n "$PHYNBR" ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+board=$(board_name)
+label_mac=""
+
+case "$board" in
+    verizon,cr1000a)
+        label_mac=$(mmc_get_mac_ascii "0:APPSBLENV" baseMAC)
+        macaddr_add $label_mac $(($PHYNBR + 2)) > /sys${DEVPATH}/macaddress
+	  ;;
+esac

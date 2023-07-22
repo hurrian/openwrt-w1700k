@@ -68,6 +68,9 @@ ipq807x_setup_interfaces()
 	tplink,eap660hd-v1)
 		ucidef_set_interface_lan "lan" "dhcp"
 		;;
+	verizon,cr1000a)
+		ucidef_set_interfaces_lan_wan "lan" "wan"
+		;;
 	zyxel,nbg7815)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 10g" "wan"
 		;;
@@ -99,6 +102,11 @@ ipq807x_setup_macs()
 	tplink,eap660hd-v1)
 		label_mac=$(get_mac_binary /tmp/factory_data/default-mac 0)
 		lan_mac=$label_mac
+		;;
+	verizon,cr1000a)
+		wan_mac=$(mmc_get_mac_ascii "0:APPSBLENV" baseMAC)
+		lan_mac=$(macaddr_add "$wan_mac" 1)
+		label_mac=wan_mac
 		;;
 	esac
 

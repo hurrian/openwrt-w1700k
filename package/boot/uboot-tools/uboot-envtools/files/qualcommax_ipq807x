@@ -54,7 +54,8 @@ asus,rt-ax89x|\
 qnap,301w)
 	ubootenv_add_mtd "0:appsblenv" "0x0" "0x20000" "0x20000"
 	;;
-spectrum,sax1v1k)
+spectrum,sax1v1k|\
+verizon,cr1000a)
 	ubootenv_add_mmc "0:APPSBLENV" "" "0x0" "0x40000" "0x40000" "1"
 	;;
 esac
