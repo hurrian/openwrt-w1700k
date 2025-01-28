@@ -1,7 +1,7 @@
 #
 # Copyright (C) 2015 OpenWrt.org
 #
-
+. /lib/functions/leds.sh
 . /lib/functions/uci-defaults.sh
 
 board_config_update
@@ -12,6 +12,12 @@ case "$board" in
 airoha,an7581-evb)
 	ucidef_set_led_usbport "usb1" "USB 1" "green:usb-1" "usb1-port1" "usb2-port1"
 	ucidef_set_led_usbport "usb2" "USB 2" "green:usb-2" "usb3-port1" "usb4-port1"
+	;;
+gemtek,w1700k)
+	ucidef_set_led_netdev "lan1" "lan1" "yellow:lan1" "lan1" "link_10 link_100 tx rx"
+	ucidef_set_led_netdev "lan1" "lan1" "green:lan1" "lan1" "link_1000 tx rx"
+	ucidef_set_led_netdev "lan2" "lan2" "yellow:lan2" "lan2" "link_10 link_100 tx rx"
+	ucidef_set_led_netdev "lan2" "lan2" "green:lan2" "lan2" "link_1000 tx rx"
 	;;
 esac
 
