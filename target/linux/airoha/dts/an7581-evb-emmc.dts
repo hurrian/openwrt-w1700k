@@ -205,29 +205,29 @@
 
 	gswp1_led0_pins: gswp1-led0-pins {
 		mux {
-			function = "phy1_led1";
-			pins = "gpio43";
+			function = "phy1_led0";
+			pins = "gpio33";
 		};
 	};
 
 	gswp2_led0_pins: gswp2-led0-pins {
 		mux {
-			function = "phy2_led1";
-			pins = "gpio44";
+			function = "phy2_led0";
+			pins = "gpio34";
 		};
 	};
 
 	gswp3_led0_pins: gswp3-led0-pins {
 		mux {
-			function = "phy3_led1";
-			pins = "gpio45";
+			function = "phy3_led0";
+			pins = "gpio35";
 		};
 	};
 
 	gswp4_led0_pins: gswp4-led0-pins {
 		mux {
-			function = "phy4_led1";
-			pins = "gpio46";
+			function = "phy4_led0";
+			pins = "gpio42";
 		};
 	};
 
@@ -324,7 +324,7 @@
 };
 
 &gsw_phy1 {
-	pinctrl-names = "led";
+	pinctrl-names = "gbe-led";
 	pinctrl-0 = <&gswp1_led0_pins>;
 	status = "okay";
 };
@@ -334,7 +334,7 @@
 };
 
 &gsw_phy2 {
-	pinctrl-names = "led";
+	pinctrl-names = "gbe-led";
 	pinctrl-0 = <&gswp2_led0_pins>;
 	status = "okay";
 };
@@ -344,7 +344,7 @@
 };
 
 &gsw_phy3 {
-	pinctrl-names = "led";
+	pinctrl-names = "gbe-led";
 	pinctrl-0 = <&gswp3_led0_pins>;
 	status = "okay";
 };
@@ -354,7 +354,7 @@
 };
 
 &gsw_phy4 {
-	pinctrl-names = "led";
+	pinctrl-names = "gbe-led";
 	pinctrl-0 = <&gswp4_led0_pins>;
 	status = "okay";
 };
