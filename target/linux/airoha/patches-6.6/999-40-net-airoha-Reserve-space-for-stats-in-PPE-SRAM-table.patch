@@ -15,8 +15,6 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  drivers/net/ethernet/airoha/airoha_ppe.c | 4 ++--
  2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/net/ethernet/airoha/airoha_eth.h b/drivers/net/ethernet/airoha/airoha_eth.h
-index 4bfe1101537a..4ea5642d0394 100644
 --- a/drivers/net/ethernet/airoha/airoha_eth.h
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
 @@ -51,6 +51,8 @@
@@ -28,11 +26,9 @@ index 4bfe1101537a..4ea5642d0394 100644
  #define PPE_HASH_MASK			(PPE_NUM_ENTRIES - 1)
  #define PPE_ENTRY_SIZE			80
  #define PPE_RAM_NUM_ENTRIES_SHIFT(_n)	(__ffs((_n) >> 10))
-diff --git a/drivers/net/ethernet/airoha/airoha_ppe.c b/drivers/net/ethernet/airoha/airoha_ppe.c
-index a7ca9f21b6f0..da8ad8610024 100644
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -102,7 +102,7 @@ static void airoha_ppe_hw_init(struct airoha_ppe *ppe)
+@@ -102,7 +102,7 @@ static void airoha_ppe_hw_init(struct ai
  
  	if (airoha_ppe2_is_enabled(eth)) {
  		sram_num_entries =
@@ -41,7 +37,7 @@ index a7ca9f21b6f0..da8ad8610024 100644
  		airoha_fe_rmw(eth, REG_PPE_TB_CFG(0),
  			      PPE_SRAM_TB_NUM_ENTRY_MASK |
  			      PPE_DRAM_TB_NUM_ENTRY_MASK,
-@@ -119,7 +119,7 @@ static void airoha_ppe_hw_init(struct airoha_ppe *ppe)
+@@ -119,7 +119,7 @@ static void airoha_ppe_hw_init(struct ai
  					 dram_num_entries));
  	} else {
  		sram_num_entries =
@@ -50,6 +46,3 @@ index a7ca9f21b6f0..da8ad8610024 100644
  		airoha_fe_rmw(eth, REG_PPE_TB_CFG(0),
  			      PPE_SRAM_TB_NUM_ENTRY_MASK |
  			      PPE_DRAM_TB_NUM_ENTRY_MASK,
--- 
-2.49.0
-

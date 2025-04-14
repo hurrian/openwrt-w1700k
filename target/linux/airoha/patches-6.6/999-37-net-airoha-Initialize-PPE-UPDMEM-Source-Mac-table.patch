@@ -1,0 +1,109 @@
+From 31f9b98488ac270e2c157a670b04d1f1a16a7712 Mon Sep 17 00:00:00 2001
+Message-ID: <31f9b98488ac270e2c157a670b04d1f1a16a7712.1744568767.git.lorenzo@kernel.org>
+From: Lorenzo Bianconi <lorenzo@kernel.org>
+Date: Sun, 13 Apr 2025 20:12:26 +0200
+Subject: [PATCH net-next] net: airoha: Initialize PPE UPDMEM Source Mac table
+
+Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
+---
+ drivers/net/ethernet/airoha/airoha_eth.c  |  2 ++
+ drivers/net/ethernet/airoha/airoha_eth.h  |  1 +
+ drivers/net/ethernet/airoha/airoha_ppe.c  | 28 ++++++++++++++++++++---
+ drivers/net/ethernet/airoha/airoha_regs.h | 10 ++++++++
+ 4 files changed, 38 insertions(+), 3 deletions(-)
+
+--- a/drivers/net/ethernet/airoha/airoha_eth.c
++++ b/drivers/net/ethernet/airoha/airoha_eth.c
+@@ -103,6 +103,8 @@ static void airoha_set_macaddr(struct ai
+ 	val = (addr[3] << 16) | (addr[4] << 8) | addr[5];
+ 	airoha_fe_wr(eth, REG_FE_MAC_LMIN(reg), val);
+ 	airoha_fe_wr(eth, REG_FE_MAC_LMAX(reg), val);
++
++	airoha_ppe_init_upd_mem(port);
+ }
+ 
+ static void airoha_set_gdm_port_fwd_cfg(struct airoha_eth *eth, u32 addr,
+--- a/drivers/net/ethernet/airoha/airoha_eth.h
++++ b/drivers/net/ethernet/airoha/airoha_eth.h
+@@ -565,6 +565,7 @@ void airoha_ppe_check_skb(struct airoha_
+ int airoha_ppe_setup_tc_block_cb(struct net_device *dev, void *type_data);
+ int airoha_ppe_init(struct airoha_eth *eth);
+ void airoha_ppe_deinit(struct airoha_eth *eth);
++void airoha_ppe_init_upd_mem(struct airoha_gdm_port *port);
+ struct airoha_foe_entry *airoha_ppe_foe_get_entry(struct airoha_ppe *ppe,
+ 						  u32 hash);
+ 
+--- a/drivers/net/ethernet/airoha/airoha_ppe.c
++++ b/drivers/net/ethernet/airoha/airoha_ppe.c
+@@ -222,6 +222,7 @@ static int airoha_ppe_foe_entry_prepare(
+ 	u32 qid, channel = 0, qdata, ports_pad, val;
+ 	int dsa_port = airoha_get_dsa_port(&dev);
+ 	struct airoha_foe_mac_info_common *l2;
++	u8 smac_id = 0xf;
+ 
+ 	memset(hwe, 0, sizeof(*hwe));
+ 
+@@ -253,6 +254,7 @@ static int airoha_ppe_foe_entry_prepare(
+ 		val |= FIELD_PREP(AIROHA_FOE_IB2_PSE_PORT, pse_port);
+ 		channel = dsa_port >= 0 ? dsa_port : port->id;
+ 		channel = channel % AIROHA_NUM_QOS_CHANNELS;
++		smac_id = port->id;
+ 	}
+ 
+ 	if (is_multicast_ether_addr(data->eth.h_dest))
+@@ -292,7 +294,7 @@ static int airoha_ppe_foe_entry_prepare(
+ 		hwe->ipv4.l2.src_mac_lo =
+ 			get_unaligned_be16(data->eth.h_source + 4);
+ 	} else {
+-		l2->src_mac_hi = FIELD_PREP(AIROHA_FOE_MAC_SMAC_ID, 0xf);
++		l2->src_mac_hi = FIELD_PREP(AIROHA_FOE_MAC_SMAC_ID, smac_id);
+ 	}
+ 
+ 	if (data->vlan.num) {
+@@ -1018,6 +1020,27 @@ void airoha_ppe_check_skb(struct airoha_
+ 	airoha_ppe_foe_insert_entry(ppe, skb, hash);
+ }
+ 
++void airoha_ppe_init_upd_mem(struct airoha_gdm_port *port)
++{
++	struct airoha_eth *eth = port->qdma->eth;
++	struct net_device *dev = port->dev;
++	const u8 *addr = dev->dev_addr;
++	u32 val;
++
++	val = (addr[2] << 24) | (addr[3] << 16) | (addr[4] <<8) | addr[5];
++	airoha_fe_wr(eth, REG_UPDMEM_DATA(0), val);
++	airoha_fe_wr(eth, REG_UPDMEM_CTRL(0),
++		     FIELD_PREP(PPE_UPDMEM_ADDR_MASK, port->id) |
++		     PPE_UPDMEM_WR_MASK | PPE_UPDMEM_REQ_MASK);
++
++	val = (addr[0] << 8) | addr[1];
++	airoha_fe_wr(eth, REG_UPDMEM_DATA(0), val);
++	airoha_fe_wr(eth, REG_UPDMEM_CTRL(0),
++		     FIELD_PREP(PPE_UPDMEM_ADDR_MASK, port->id) |
++		     FIELD_PREP(PPE_UPDMEM_OFFSET_MASK, 1) |
++		     PPE_UPDMEM_WR_MASK | PPE_UPDMEM_REQ_MASK);
++}
++
+ int airoha_ppe_init(struct airoha_eth *eth)
+ {
+ 	struct airoha_ppe *ppe;
+--- a/drivers/net/ethernet/airoha/airoha_regs.h
++++ b/drivers/net/ethernet/airoha/airoha_regs.h
+@@ -312,6 +312,16 @@
+ #define REG_PPE_RAM_BASE(_n)			(((_n) ? PPE2_BASE : PPE1_BASE) + 0x320)
+ #define REG_PPE_RAM_ENTRY(_m, _n)		(REG_PPE_RAM_BASE(_m) + ((_n) << 2))
+ 
++#define REG_UPDMEM_CTRL(_n)			(((_n) ? PPE2_BASE : PPE1_BASE) + 0x370)
++#define PPE_UPDMEM_ACK_MASK			BIT(31)
++#define PPE_UPDMEM_ADDR_MASK			GENMASK(11, 8)
++#define PPE_UPDMEM_OFFSET_MASK			GENMASK(7, 4)
++#define PPE_UPDMEM_SEL_MASK			GENMASK(3, 2)
++#define PPE_UPDMEM_WR_MASK			BIT(1)
++#define PPE_UPDMEM_REQ_MASK			BIT(0)
++
++#define REG_UPDMEM_DATA(_n)			(((_n) ? PPE2_BASE : PPE1_BASE) + 0x374)
++
+ #define REG_FE_GDM_TX_OK_PKT_CNT_H(_n)		(GDM_BASE(_n) + 0x280)
+ #define REG_FE_GDM_TX_OK_BYTE_CNT_H(_n)		(GDM_BASE(_n) + 0x284)
+ #define REG_FE_GDM_TX_ETH_PKT_CNT_H(_n)		(GDM_BASE(_n) + 0x288)
