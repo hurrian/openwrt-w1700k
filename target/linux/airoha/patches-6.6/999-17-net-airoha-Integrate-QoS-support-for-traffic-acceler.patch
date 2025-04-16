@@ -21,8 +21,8 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 -					int l4proto)
 +					int l4proto, u32 priority)
  {
-+	u32 qid, channel = 0, qdata, ports_pad, val;
  	int dsa_port = airoha_get_dsa_port(&dev);
++	u32 channel = 0, qdata, ports_pad, val;
  	struct airoha_foe_mac_info_common *l2;
 -	u32 qdata, ports_pad, val;
  
@@ -41,21 +41,19 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	}
  
  	if (is_multicast_ether_addr(data->eth.h_dest))
-@@ -241,7 +244,12 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -241,7 +244,10 @@ static int airoha_ppe_foe_entry_prepare(
  	if (type == PPE_PKT_TYPE_IPV6_ROUTE_3T)
  		hwe->ipv6.ports = ports_pad;
  
 -	qdata = FIELD_PREP(AIROHA_FOE_SHAPER_ID, 0x7f);
-+	priority = priority % AIROHA_NUM_QOS_QUEUES;
-+	qid = (AIROHA_NUM_QOS_QUEUES - 1) - priority;
 +	qdata = FIELD_PREP(AIROHA_FOE_CHANNEL, channel) |
-+		FIELD_PREP(AIROHA_FOE_QID, qid) |
++		FIELD_PREP(AIROHA_FOE_QID, priority % AIROHA_NUM_QOS_QUEUES) |
 +		FIELD_PREP(AIROHA_FOE_SHAPER_ID, 0x7f);
 +
  	if (type == PPE_PKT_TYPE_BRIDGE) {
  		hwe->bridge.dest_mac_hi = get_unaligned_be32(data->eth.h_dest);
  		hwe->bridge.dest_mac_lo =
-@@ -544,6 +552,7 @@ static int airoha_ppe_flow_offload_repla
+@@ -544,6 +550,7 @@ static int airoha_ppe_flow_offload_repla
  	struct airoha_foe_entry hwe;
  	int err, i, offload_type;
  	u16 addr_type = 0;
@@ -63,7 +61,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	u8 l4proto = 0;
  
  	if (rhashtable_lookup(&eth->flow_table, &f->cookie,
-@@ -621,6 +630,9 @@ static int airoha_ppe_flow_offload_repla
+@@ -621,6 +628,9 @@ static int airoha_ppe_flow_offload_repla
  			break;
  		case FLOW_ACTION_PPPOE_PUSH:
  			break;
@@ -73,7 +71,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		default:
  			return -EOPNOTSUPP;
  		}
-@@ -631,7 +643,7 @@ static int airoha_ppe_flow_offload_repla
+@@ -631,7 +641,7 @@ static int airoha_ppe_flow_offload_repla
  		return -EINVAL;
  
  	err = airoha_ppe_foe_entry_prepare(&hwe, odev, offload_type,
