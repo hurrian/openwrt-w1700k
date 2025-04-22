@@ -143,16 +143,20 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  #define AIROHA_MAX_DSA_PORTS		7
  #define AIROHA_MAX_NUM_RSTS		3
  #define AIROHA_MAX_NUM_XSI_RSTS		5
-@@ -475,6 +475,13 @@ struct airoha_flow_table_entry {
+@@ -482,6 +482,17 @@ struct airoha_flow_table_entry {
  	unsigned long cookie;
  };
  
-+/* IRQ BANK0: RINGS [0-7]
-+ * IRQ BANK1: RINGS [8-15]
-+ * IRQ BANK2: RINGS [16-23]
-+ * IRQ BANK3: RINGS [24-31]
-+ */
-+#define RX_IRQ_BANK_PIN_MASK(_n)	GENMASK(7 + ((_n) << 3), ((_n) << 3))
++/* RX queue to IRQ mapping: BIT(q) in IRQ(n) */
++#define RX_IRQ0_BANK_PIN_MASK			0x839f
++#define RX_IRQ1_BANK_PIN_MASK			0x7fe00000
++#define RX_IRQ2_BANK_PIN_MASK			0x20
++#define RX_IRQ3_BANK_PIN_MASK			0x40
++#define RX_IRQ_BANK_PIN_MASK(_n)		\
++	(((_n) == 3) ? RX_IRQ3_BANK_PIN_MASK :	\
++	 ((_n) == 2) ? RX_IRQ2_BANK_PIN_MASK :	\
++	 ((_n) == 1) ? RX_IRQ1_BANK_PIN_MASK :	\
++	 RX_IRQ0_BANK_PIN_MASK)
 +
  struct airoha_irq_bank {
  	struct airoha_qdma *qdma;
