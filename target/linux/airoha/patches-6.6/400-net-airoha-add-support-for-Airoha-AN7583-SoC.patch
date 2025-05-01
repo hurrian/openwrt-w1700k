@@ -1,0 +1,159 @@
+From eff395381a37e868318034928e147fd284212725 Mon Sep 17 00:00:00 2001
+From: Christian Marangi <ansuelsmth@gmail.com>
+Date: Fri, 2 May 2025 01:00:34 +0200
+Subject: [PATCH] net: airoha: add support for Airoha AN7583 SoC
+
+Add support for Airoha AN7583 SoC. The same feature of Airoha EN7581 are
+supported with the only difference of AN7583 supporting only one PPE.
+
+To support this, move the PPE num to match data.
+
+Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+---
+ drivers/net/ethernet/airoha/airoha_eth.c | 44 ++++++++++++++++++------
+ drivers/net/ethernet/airoha/airoha_eth.h |  5 ++-
+ drivers/net/ethernet/airoha/airoha_ppe.c |  5 ++-
+ 3 files changed, 41 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/net/ethernet/airoha/airoha_eth.c b/drivers/net/ethernet/airoha/airoha_eth.c
+index 723eba7cfa0c..202d67b3635c 100644
+--- a/drivers/net/ethernet/airoha/airoha_eth.c
++++ b/drivers/net/ethernet/airoha/airoha_eth.c
+@@ -283,6 +283,7 @@ static int airoha_fe_set_pse_oq_rsv(struct airoha_eth *eth,
+ 
+ static void airoha_fe_pse_ports_init(struct airoha_eth *eth)
+ {
++	const struct airoha_eth_match_data *data;
+ 	const u32 pse_port_num_queues[] = {
+ 		[FE_PSE_PORT_CDM1] = 6,
+ 		[FE_PSE_PORT_GDM1] = 6,
+@@ -299,9 +300,13 @@ static void airoha_fe_pse_ports_init(struct airoha_eth *eth)
+ 	u32 all_rsv;
+ 	int q;
+ 
++	data = of_device_get_match_data(eth->dev);
++
+ 	all_rsv = airoha_fe_get_pse_all_rsv(eth);
+-	/* hw misses PPE2 oq rsv */
+-	all_rsv += PSE_RSV_PAGES * pse_port_num_queues[FE_PSE_PORT_PPE2];
++	if (data->ppe_num > 1) {
++		/* hw misses PPE2 oq rsv */
++		all_rsv += PSE_RSV_PAGES * pse_port_num_queues[FE_PSE_PORT_PPE2];
++	}
+ 	airoha_fe_set(eth, REG_FE_PSE_BUF_SET, all_rsv);
+ 
+ 	/* CMD1 */
+@@ -338,13 +343,15 @@ static void airoha_fe_pse_ports_init(struct airoha_eth *eth)
+ 	for (q = 4; q < pse_port_num_queues[FE_PSE_PORT_CDM4]; q++)
+ 		airoha_fe_set_pse_oq_rsv(eth, FE_PSE_PORT_CDM4, q,
+ 					 PSE_QUEUE_RSV_PAGES);
+-	/* PPE2 */
+-	for (q = 0; q < pse_port_num_queues[FE_PSE_PORT_PPE2]; q++) {
+-		if (q < pse_port_num_queues[FE_PSE_PORT_PPE2] / 2)
+-			airoha_fe_set_pse_oq_rsv(eth, FE_PSE_PORT_PPE2, q,
+-						 PSE_QUEUE_RSV_PAGES);
+-		else
+-			airoha_fe_set_pse_oq_rsv(eth, FE_PSE_PORT_PPE2, q, 0);
++	if (data->ppe_num > 1) {
++		/* PPE2 */
++		for (q = 0; q < pse_port_num_queues[FE_PSE_PORT_PPE2]; q++) {
++			if (q < pse_port_num_queues[FE_PSE_PORT_PPE2] / 2)
++				airoha_fe_set_pse_oq_rsv(eth, FE_PSE_PORT_PPE2, q,
++							PSE_QUEUE_RSV_PAGES);
++			else
++				airoha_fe_set_pse_oq_rsv(eth, FE_PSE_PORT_PPE2, q, 0);
++		}
+ 	}
+ 	/* GMD4 */
+ 	for (q = 0; q < pse_port_num_queues[FE_PSE_PORT_GDM4]; q++)
+@@ -1659,8 +1666,11 @@ static int airoha_dev_init(struct net_device *dev)
+ {
+ 	struct airoha_gdm_port *port = netdev_priv(dev);
+ 	struct airoha_eth *eth = port->qdma->eth;
++	const struct airoha_eth_match_data *data;
+ 	u32 pse_port;
+ 
++	data = of_device_get_match_data(eth->dev);
++
+ 	airoha_set_macaddr(port, dev->dev_addr);
+ 
+ 	switch (port->id) {
+@@ -1671,7 +1681,10 @@ static int airoha_dev_init(struct net_device *dev)
+ 			airhoha_set_gdm2_loopback(port);
+ 		fallthrough;
+ 	case 2:
+-		pse_port = FE_PSE_PORT_PPE2;
++		if (data->ppe_num > 1)
++			pse_port = FE_PSE_PORT_PPE2;
++		else
++			pse_port = FE_PSE_PORT_PPE1;
+ 		break;
+ 	default:
+ 		pse_port = FE_PSE_PORT_PPE1;
+@@ -2675,8 +2688,17 @@ static void airoha_remove(struct platform_device *pdev)
+ 	platform_set_drvdata(pdev, NULL);
+ }
+ 
++static const struct airoha_eth_match_data en7581_match_data = {
++	.ppe_num = 2,
++};
++
++static const struct airoha_eth_match_data an7583_match_data = {
++	.ppe_num = 1,
++};
++
+ static const struct of_device_id of_airoha_match[] = {
+-	{ .compatible = "airoha,en7581-eth" },
++	{ .compatible = "airoha,en7581-eth", .data = &en7581_match_data },
++	{ .compatible = "airoha,an7583-eth", .data = &an7583_match_data },
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, of_airoha_match);
+diff --git a/drivers/net/ethernet/airoha/airoha_eth.h b/drivers/net/ethernet/airoha/airoha_eth.h
+index e82abfc1a67b..db9d4bedc410 100644
+--- a/drivers/net/ethernet/airoha/airoha_eth.h
++++ b/drivers/net/ethernet/airoha/airoha_eth.h
+@@ -46,7 +46,6 @@
+ #define QDMA_METER_IDX(_n)		((_n) & 0xff)
+ #define QDMA_METER_GROUP(_n)		(((_n) >> 8) & 0x3)
+ 
+-#define PPE_NUM				2
+ #define PPE1_SRAM_NUM_ENTRIES		(8 * 1024)
+ #define PPE_SRAM_NUM_ENTRIES		(2 * PPE1_SRAM_NUM_ENTRIES)
+ #define PPE_DRAM_NUM_ENTRIES		(16 * 1024)
+@@ -523,6 +522,10 @@ struct airoha_eth {
+ 	struct airoha_gdm_port *ports[AIROHA_MAX_NUM_GDM_PORTS];
+ };
+ 
++struct airoha_eth_match_data {
++	unsigned int ppe_num;
++};
++
+ u32 airoha_rr(void __iomem *base, u32 offset);
+ void airoha_wr(void __iomem *base, u32 offset, u32 val);
+ u32 airoha_rmw(void __iomem *base, u32 offset, u32 mask, u32 val);
+diff --git a/drivers/net/ethernet/airoha/airoha_ppe.c b/drivers/net/ethernet/airoha/airoha_ppe.c
+index d4969c2a0352..b53533b9e1d1 100644
+--- a/drivers/net/ethernet/airoha/airoha_ppe.c
++++ b/drivers/net/ethernet/airoha/airoha_ppe.c
+@@ -46,13 +46,16 @@ static u32 airoha_ppe_get_timestamp(struct airoha_ppe *ppe)
+ static void airoha_ppe_hw_init(struct airoha_ppe *ppe)
+ {
+ 	u32 sram_tb_size, sram_num_entries, dram_num_entries;
++	const struct airoha_eth_match_data *data;
+ 	struct airoha_eth *eth = ppe->eth;
+ 	int i;
+ 
++	data = of_device_get_match_data(eth->dev);
++
+ 	sram_tb_size = PPE_SRAM_NUM_ENTRIES * sizeof(struct airoha_foe_entry);
+ 	dram_num_entries = PPE_RAM_NUM_ENTRIES_SHIFT(PPE_DRAM_NUM_ENTRIES);
+ 
+-	for (i = 0; i < PPE_NUM; i++) {
++	for (i = 0; i < data->ppe_num; i++) {
+ 		int p;
+ 
+ 		airoha_fe_wr(eth, REG_PPE_TB_BASE(i),
+-- 
+2.48.1
+
