@@ -20,7 +20,7 @@ diff --git a/drivers/net/dsa/mt7530.c b/drivers/net/dsa/mt7530.c
 index 1c83af805209..5883eb93efb1 100644
 --- a/drivers/net/dsa/mt7530.c
 +++ b/drivers/net/dsa/mt7530.c
-@@ -2591,7 +2591,8 @@ mt7531_setup_common(struct dsa_switch *ds)
+@@ -2591,8 +2591,9 @@ mt7531_setup_common(struct dsa_switch *ds)
  	if (ret < 0)
  		return ret;
  
@@ -30,6 +30,7 @@ index 1c83af805209..5883eb93efb1 100644
  }
  
  static int
+ mt7531_setup(struct dsa_switch *ds)
 @@ -2687,11 +2688,6 @@ mt7531_setup(struct dsa_switch *ds)
  	if (ret)
  		return ret;
