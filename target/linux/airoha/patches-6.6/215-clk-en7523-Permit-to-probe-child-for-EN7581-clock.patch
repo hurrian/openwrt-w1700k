@@ -25,38 +25,14 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  #include <linux/platform_device.h>
  #include <linux/property.h>
  #include <linux/regmap.h>
-@@ -676,12 +677,19 @@ static int en7581_reset_register(struct
- 	return devm_reset_controller_register(dev, &rst_data->rcdev);
- }
- 
-+static const struct regmap_config en7581_clk_regmap_config = {
-+	.reg_bits = 32,
-+	.val_bits = 32,
-+	.reg_stride = 4,
-+};
-+
- static int en7581_clk_hw_init(struct platform_device *pdev,
- 			      struct clk_hw_onecell_data *clk_data)
- {
--	struct regmap *map;
-+	struct regmap *map, *clk_map;
+@@ -676,6 +677,7 @@ static int en7581_reset_register(struct
+ 	struct regmap *map;
  	void __iomem *base;
  	u32 val;
 +	int ret;
  
  	map = syscon_regmap_lookup_by_compatible("airoha,en7581-chip-scu");
  	if (IS_ERR(map))
-@@ -691,6 +699,10 @@ static int en7581_clk_hw_init(struct pla
- 	if (IS_ERR(base))
- 		return PTR_ERR(base);
- 
-+	clk_map = devm_regmap_init_mmio(&pdev->dev, base, &en7581_clk_regmap_config);
-+	if (IS_ERR(clk_map))
-+		return PTR_ERR(clk_map);
-+
- 	en7581_register_clocks(&pdev->dev, clk_data, map, base);
- 
- 	val = readl(base + REG_NP_SCU_SSTR);
 @@ -699,7 +711,11 @@ static int en7581_clk_hw_init(struct pla
  	val = readl(base + REG_NP_SCU_PCIC);
  	writel(val | 3, base + REG_NP_SCU_PCIC);
