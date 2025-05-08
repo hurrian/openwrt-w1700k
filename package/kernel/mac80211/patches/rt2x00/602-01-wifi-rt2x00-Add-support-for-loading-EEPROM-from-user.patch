@@ -151,7 +151,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 +	}
 +
 +	if (!ee_name)
-+		return -ENOENT;
++		return 0;
 +
 +	rt2x00_info(rt2x00dev, "Loading EEPROM data from '%s'.\n", ee_name);
 +
