@@ -24,7 +24,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -1760,18 +1760,13 @@ static u32 airoha_get_dsa_tag(struct sk_
+@@ -1816,18 +1816,13 @@ static u32 airoha_get_dsa_tag(struct sk_
  {
  #if IS_ENABLED(CONFIG_NET_DSA)
  	struct ethhdr *ehdr;

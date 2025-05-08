@@ -14,7 +14,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -2171,6 +2173,125 @@ static int airoha_tc_setup_qdisc_ets(str
+@@ -2184,6 +2184,125 @@ static int airoha_tc_setup_qdisc_ets(str
  	}
  }
  
@@ -140,7 +140,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static int airoha_qdma_get_trtcm_param(struct airoha_qdma *qdma, int channel,
  				       u32 addr, enum trtcm_param_type param,
  				       enum trtcm_mode_type mode,
-@@ -2335,10 +2456,142 @@ static int airoha_tc_htb_alloc_leaf_queu
+@@ -2348,10 +2467,142 @@ static int airoha_tc_htb_alloc_leaf_queu
  	return 0;
  }
  
@@ -286,7 +286,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  
 --- a/drivers/net/ethernet/airoha/airoha_eth.h
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
-@@ -127,6 +127,11 @@ enum tx_sched_mode {
+@@ -126,6 +126,11 @@ enum tx_sched_mode {
  	TC_SCH_WRR2,
  };
  
@@ -298,7 +298,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  enum trtcm_param_type {
  	TRTCM_MISC_MODE, /* meter_en, pps_mode, tick_sel */
  	TRTCM_TOKEN_RATE_MODE,
-@@ -567,8 +572,7 @@ int airoha_is_valid_gdm_port(struct airo
+@@ -565,8 +570,7 @@ bool airoha_is_valid_gdm_port(struct air
  
  void airoha_ppe_check_skb(struct airoha_ppe *ppe, struct sk_buff *skb,
  			  u16 hash);
@@ -310,7 +310,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  struct airoha_foe_entry *airoha_ppe_foe_get_entry(struct airoha_ppe *ppe,
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -1099,18 +1099,13 @@ error_npu_put:
+@@ -986,18 +986,13 @@ error_npu_put:
  	return err;
  }
  

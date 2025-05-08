@@ -18,7 +18,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -35,37 +35,40 @@ u32 airoha_rmw(void __iomem *base, u32 o
+@@ -38,37 +38,40 @@ u32 airoha_rmw(void __iomem *base, u32 o
  	return val;
  }
  
@@ -74,7 +74,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  }
  
  static bool airhoa_is_lan_gdm_port(struct airoha_eth *eth,
-@@ -752,6 +755,7 @@ free_frag:
+@@ -772,6 +775,7 @@ free_frag:
  static int airoha_qdma_rx_napi_poll(struct napi_struct *napi, int budget)
  {
  	struct airoha_queue *q = container_of(napi, struct airoha_queue, napi);
@@ -82,7 +82,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	int cur, done = 0;
  
  	do {
-@@ -760,7 +764,7 @@ static int airoha_qdma_rx_napi_poll(stru
+@@ -780,7 +784,7 @@ static int airoha_qdma_rx_napi_poll(stru
  	} while (cur && done < budget);
  
  	if (done < budget && napi_complete(napi))
@@ -91,7 +91,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  				       RX_DONE_INT_MASK);
  
  	return done;
-@@ -965,7 +969,7 @@ unlock:
+@@ -985,7 +989,7 @@ unlock:
  	}
  
  	if (done < budget && napi_complete(napi))
@@ -100,7 +100,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  				       TX_DONE_INT_MASK(id));
  
  	return done;
-@@ -1196,13 +1200,16 @@ static int airoha_qdma_hw_init(struct ai
+@@ -1216,13 +1220,16 @@ static int airoha_qdma_hw_init(struct ai
  	int i;
  
  	/* clear pending irqs */
@@ -121,7 +121,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  
  	/* setup irq binding */
  	for (i = 0; i < ARRAY_SIZE(qdma->q_tx); i++) {
-@@ -1247,13 +1254,14 @@ static int airoha_qdma_hw_init(struct ai
+@@ -1267,13 +1274,14 @@ static int airoha_qdma_hw_init(struct ai
  
  static irqreturn_t airoha_irq_handler(int irq, void *dev_instance)
  {
@@ -140,7 +140,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		airoha_qdma_wr(qdma, REG_INT_STATUS(i), intr[i]);
  	}
  
-@@ -1261,7 +1269,7 @@ static irqreturn_t airoha_irq_handler(in
+@@ -1281,7 +1289,7 @@ static irqreturn_t airoha_irq_handler(in
  		return IRQ_NONE;
  
  	if (intr[1] & RX_DONE_INT_MASK) {
@@ -149,7 +149,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  					RX_DONE_INT_MASK);
  
  		for (i = 0; i < ARRAY_SIZE(qdma->q_rx); i++) {
-@@ -1278,7 +1286,7 @@ static irqreturn_t airoha_irq_handler(in
+@@ -1298,7 +1306,7 @@ static irqreturn_t airoha_irq_handler(in
  			if (!(intr[0] & TX_DONE_INT_MASK(i)))
  				continue;
  
@@ -158,7 +158,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  						TX_DONE_INT_MASK(i));
  			napi_schedule(&qdma->q_tx_irq[i].napi);
  		}
-@@ -1287,6 +1295,39 @@ static irqreturn_t airoha_irq_handler(in
+@@ -1307,6 +1315,39 @@ static irqreturn_t airoha_irq_handler(in
  	return IRQ_HANDLED;
  }
  
@@ -198,7 +198,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static int airoha_qdma_init(struct platform_device *pdev,
  			    struct airoha_eth *eth,
  			    struct airoha_qdma *qdma)
-@@ -1294,9 +1335,7 @@ static int airoha_qdma_init(struct platf
+@@ -1314,9 +1355,7 @@ static int airoha_qdma_init(struct platf
  	int err, id = qdma - &eth->qdma[0];
  	const char *res;
  
@@ -208,7 +208,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	res = devm_kasprintf(eth->dev, GFP_KERNEL, "qdma%d", id);
  	if (!res)
  		return -ENOMEM;
-@@ -1306,12 +1345,7 @@ static int airoha_qdma_init(struct platf
+@@ -1326,12 +1365,7 @@ static int airoha_qdma_init(struct platf
  		return dev_err_probe(eth->dev, PTR_ERR(qdma->regs),
  				     "failed to iomap qdma%d regs\n", id);
  
@@ -222,7 +222,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	if (err)
  		return err;
  
-@@ -2995,7 +3029,7 @@ static int airoha_register_gdm_ports(str
+@@ -3244,7 +3278,7 @@ static int airoha_register_gdm_ports(str
  
  		qdma_idx = airhoa_is_lan_gdm_port(eth, port) ? 0 : 1;
  		qdma = &eth->qdma[qdma_idx];
@@ -240,8 +240,8 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 +#define AIROHA_MAX_NUM_IRQ_BANKS	1
  #define AIROHA_MAX_DSA_PORTS		7
  #define AIROHA_MAX_NUM_RSTS		3
- #define AIROHA_MAX_NUM_XSI_RSTS		5
-@@ -474,17 +475,23 @@ struct airoha_flow_table_entry {
+ #define AIROHA_MAX_NUM_XSI_RSTS		4
+@@ -480,17 +481,23 @@ struct airoha_flow_table_entry {
  	unsigned long cookie;
  };
  
@@ -270,7 +270,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	struct airoha_queue q_tx[AIROHA_NUM_TX_RING];
 --- a/drivers/net/ethernet/airoha/airoha_regs.h
 +++ b/drivers/net/ethernet/airoha/airoha_regs.h
-@@ -433,11 +433,12 @@
+@@ -439,11 +439,12 @@
  	 ((_n) == 2) ? 0x0720 :		\
  	 ((_n) == 1) ? 0x0024 : 0x0020)
  

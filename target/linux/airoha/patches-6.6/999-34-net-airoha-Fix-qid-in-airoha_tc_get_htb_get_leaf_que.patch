@@ -10,11 +10,9 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  drivers/net/ethernet/airoha/airoha_eth.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/airoha/airoha_eth.c b/drivers/net/ethernet/airoha/airoha_eth.c
-index c6eb1aa21bf7..42ad4a450e1e 100644
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -2354,7 +2354,7 @@ static int airoha_tc_get_htb_get_leaf_queue(struct airoha_gdm_port *port,
+@@ -2433,7 +2433,7 @@ static int airoha_tc_get_htb_get_leaf_qu
  		return -EINVAL;
  	}
  
@@ -23,6 +21,3 @@ index c6eb1aa21bf7..42ad4a450e1e 100644
  
  	return 0;
  }
--- 
-2.48.1
-

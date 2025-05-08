@@ -17,8 +17,8 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.h
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
-@@ -49,6 +49,14 @@
- #define PPE_NUM				2
+@@ -48,6 +48,14 @@
+ 
  #define PPE1_SRAM_NUM_ENTRIES		(8 * 1024)
  #define PPE_SRAM_NUM_ENTRIES		(2 * PPE1_SRAM_NUM_ENTRIES)
 +#ifdef CONFIG_NET_AIROHA_FLOW_STATS
@@ -32,7 +32,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  #define PPE_DRAM_NUM_ENTRIES		(16 * 1024)
  #define PPE_NUM_ENTRIES			(PPE_SRAM_NUM_ENTRIES + PPE_DRAM_NUM_ENTRIES)
  #define PPE_HASH_MASK			(PPE_NUM_ENTRIES - 1)
-@@ -261,6 +269,8 @@ struct airoha_foe_mac_info {
+@@ -260,6 +268,8 @@ struct airoha_foe_mac_info {
  
  	u16 pppoe_id;
  	u16 src_mac_lo;
@@ -41,7 +41,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  };
  
  #define AIROHA_FOE_IB1_UNBIND_PREBIND		BIT(24)
-@@ -296,6 +306,11 @@ struct airoha_foe_mac_info {
+@@ -295,6 +305,11 @@ struct airoha_foe_mac_info {
  #define AIROHA_FOE_TUNNEL			BIT(6)
  #define AIROHA_FOE_TUNNEL_ID			GENMASK(5, 0)
  
@@ -53,7 +53,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  struct airoha_foe_bridge {
  	u32 dest_mac_hi;
  
-@@ -379,6 +394,8 @@ struct airoha_foe_ipv6 {
+@@ -378,6 +393,8 @@ struct airoha_foe_ipv6 {
  	u32 ib2;
  
  	struct airoha_foe_mac_info_common l2;
@@ -62,7 +62,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  };
  
  struct airoha_foe_entry {
-@@ -397,6 +414,16 @@ struct airoha_foe_entry {
+@@ -396,6 +413,16 @@ struct airoha_foe_entry {
  	};
  };
  
@@ -79,7 +79,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  struct airoha_flow_data {
  	struct ethhdr eth;
  
-@@ -447,6 +474,7 @@ struct airoha_flow_table_entry {
+@@ -446,6 +473,7 @@ struct airoha_flow_table_entry {
  	struct hlist_node l2_subflow_node; /* PPE L2 subflow entry */
  	u32 hash;
  
@@ -87,7 +87,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	enum airoha_flow_entry_type type;
  
  	struct rhash_head node;
-@@ -506,6 +534,9 @@ struct airoha_ppe {
+@@ -510,6 +538,9 @@ struct airoha_ppe {
  	struct hlist_head *foe_flow;
  	u16 foe_check_time[PPE_NUM_ENTRIES];
  
@@ -97,7 +97,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	struct dentry *debugfs_dir;
  };
  
-@@ -568,6 +599,8 @@ void airoha_ppe_deinit(struct airoha_eth
+@@ -576,6 +607,8 @@ void airoha_ppe_deinit(struct airoha_eth
  void airoha_ppe_init_upd_mem(struct airoha_gdm_port *port);
  struct airoha_foe_entry *airoha_ppe_foe_get_entry(struct airoha_ppe *ppe,
  						  u32 hash);
@@ -226,7 +226,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  void airoha_npu_put(struct airoha_npu *npu);
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -102,7 +102,7 @@ static void airoha_ppe_hw_init(struct ai
+@@ -105,7 +105,7 @@ static void airoha_ppe_hw_init(struct ai
  
  	if (airoha_ppe2_is_enabled(eth)) {
  		sram_num_entries =
@@ -235,7 +235,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		airoha_fe_rmw(eth, REG_PPE_TB_CFG(0),
  			      PPE_SRAM_TB_NUM_ENTRY_MASK |
  			      PPE_DRAM_TB_NUM_ENTRY_MASK,
-@@ -119,7 +119,7 @@ static void airoha_ppe_hw_init(struct ai
+@@ -122,7 +122,7 @@ static void airoha_ppe_hw_init(struct ai
  					 dram_num_entries));
  	} else {
  		sram_num_entries =
@@ -244,7 +244,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		airoha_fe_rmw(eth, REG_PPE_TB_CFG(0),
  			      PPE_SRAM_TB_NUM_ENTRY_MASK |
  			      PPE_DRAM_TB_NUM_ENTRY_MASK,
-@@ -430,6 +430,69 @@ static u32 airoha_ppe_foe_get_entry_hash
+@@ -433,6 +433,69 @@ static u32 airoha_ppe_foe_get_entry_hash
  	return hash;
  }
  
@@ -314,7 +314,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  struct airoha_foe_entry *airoha_ppe_foe_get_entry(struct airoha_ppe *ppe,
  						  u32 hash)
  {
-@@ -481,8 +544,10 @@ static int airoha_ppe_foe_commit_entry(s
+@@ -484,8 +547,10 @@ static int airoha_ppe_foe_commit_entry(s
  				       u32 hash)
  {
  	struct airoha_foe_entry *hwe = ppe->foe + hash * sizeof(*hwe);
@@ -326,7 +326,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  
  	memcpy(&hwe->d, &e->d, sizeof(*hwe) - sizeof(hwe->ib1));
  	wmb();
-@@ -491,25 +556,30 @@ static int airoha_ppe_foe_commit_entry(s
+@@ -494,25 +559,30 @@ static int airoha_ppe_foe_commit_entry(s
  	e->ib1 |= FIELD_PREP(AIROHA_FOE_IB1_BIND_TIMESTAMP, ts);
  	hwe->ib1 = e->ib1;
  
@@ -369,7 +369,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  }
  
  static void airoha_ppe_foe_remove_flow(struct airoha_ppe *ppe,
-@@ -700,6 +770,95 @@ airoha_ppe_foe_flow_remove_entry_locked(
+@@ -703,6 +773,95 @@ airoha_ppe_foe_flow_remove_entry_locked(
  	spin_unlock_bh(&ppe_lock);
  }
  
@@ -465,7 +465,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static int airoha_ppe_flow_offload_replace(struct airoha_gdm_port *port,
  					   struct flow_cls_offload *f)
  {
-@@ -921,6 +1080,56 @@ static int airoha_ppe_flow_offload_destr
+@@ -927,6 +1086,56 @@ static int airoha_ppe_flow_offload_destr
  	return 0;
  }
  
@@ -522,7 +522,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static int airoha_ppe_flow_offload_cmd(struct airoha_gdm_port *port,
  				       struct flow_cls_offload *f)
  {
-@@ -929,6 +1138,8 @@ static int airoha_ppe_flow_offload_cmd(s
+@@ -935,6 +1144,8 @@ static int airoha_ppe_flow_offload_cmd(s
  		return airoha_ppe_flow_offload_replace(port, f);
  	case FLOW_CLS_DESTROY:
  		return airoha_ppe_flow_offload_destroy(port, f);
@@ -531,7 +531,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	default:
  		break;
  	}
-@@ -954,11 +1165,12 @@ static int airoha_ppe_flush_sram_entries
+@@ -960,11 +1171,12 @@ static int airoha_ppe_flush_sram_entries
  
  static struct airoha_npu *airoha_ppe_npu_get(struct airoha_eth *eth)
  {
@@ -546,7 +546,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	}
  
  	return npu;
-@@ -981,6 +1193,8 @@ static int airoha_ppe_offload_setup(stru
+@@ -987,6 +1199,8 @@ static int airoha_ppe_offload_setup(stru
  	if (err)
  		goto error_npu_put;
  
@@ -555,7 +555,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	rcu_assign_pointer(eth->npu, npu);
  	synchronize_rcu();
  
-@@ -1073,6 +1287,15 @@ int airoha_ppe_init(struct airoha_eth *e
+@@ -1079,6 +1293,15 @@ int airoha_ppe_init(struct airoha_eth *e
  	if (!ppe->foe_flow)
  		return -ENOMEM;
  

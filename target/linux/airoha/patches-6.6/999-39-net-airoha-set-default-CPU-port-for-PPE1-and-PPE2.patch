@@ -12,7 +12,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -543,6 +543,27 @@ static int airoha_fe_init(struct airoha_
+@@ -560,6 +560,27 @@ static int airoha_fe_init(struct airoha_
  	/* disable IFC by default */
  	airoha_fe_clear(eth, REG_FE_CSR_IFC_CFG, FE_IFC_EN_MASK);
  
@@ -40,7 +40,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	/* enable 1:N vlan action, init vlan table */
  	airoha_fe_set(eth, REG_MC_VLAN_EN, MC_VLAN_EN_MASK);
  
-@@ -1653,7 +1674,6 @@ static void airhoha_set_gdm2_loopback(st
+@@ -1703,7 +1724,6 @@ static void airhoha_set_gdm2_loopback(st
  
  	if (port->id == 3) {
  		/* FIXME: handle XSI_PCE1_PORT */
@@ -50,7 +50,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  			      FIELD_PREP(WAN0_MASK, HSGMII_LAN_PCIE0_SRCPORT));
 --- a/drivers/net/ethernet/airoha/airoha_regs.h
 +++ b/drivers/net/ethernet/airoha/airoha_regs.h
-@@ -283,6 +283,7 @@
+@@ -284,6 +284,7 @@
  #define PPE_HASH_SEED				0x12345678
  
  #define REG_PPE_DFT_CPORT0(_n)			(((_n) ? PPE2_BASE : PPE1_BASE) + 0x248)

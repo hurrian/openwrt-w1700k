@@ -14,15 +14,15 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -10,6 +10,7 @@
- #include <linux/tcp.h>
+@@ -12,6 +12,7 @@
  #include <linux/u64_stats_sync.h>
+ #include <linux/regmap.h>
  #include <net/dst_metadata.h>
 +#include <net/netdev_rx_queue.h>
  #include <net/page_pool/helpers.h>
  #include <net/pkt_cls.h>
  #include <uapi/linux/ppp_defs.h>
-@@ -2720,6 +2721,30 @@ static int airoha_dev_tc_setup(struct ne
+@@ -2731,6 +2732,30 @@ static int airoha_dev_tc_setup(struct ne
  	}
  }
  
@@ -53,7 +53,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static const struct net_device_ops airoha_netdev_ops = {
  	.ndo_init		= airoha_dev_init,
  	.ndo_open		= airoha_dev_open,
-@@ -2730,6 +2755,7 @@ static const struct net_device_ops airoh
+@@ -2741,6 +2766,7 @@ static const struct net_device_ops airoh
  	.ndo_get_stats64        = airoha_dev_get_stats64,
  	.ndo_set_mac_address	= airoha_dev_set_macaddr,
  	.ndo_setup_tc		= airoha_dev_tc_setup,

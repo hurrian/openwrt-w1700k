@@ -14,7 +14,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -103,6 +103,8 @@ static void airoha_set_macaddr(struct ai
+@@ -111,6 +111,8 @@ static void airoha_set_macaddr(struct ai
  	val = (addr[3] << 16) | (addr[4] << 8) | addr[5];
  	airoha_fe_wr(eth, REG_FE_MAC_LMIN(reg), val);
  	airoha_fe_wr(eth, REG_FE_MAC_LMAX(reg), val);
@@ -25,7 +25,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static void airoha_set_gdm_port_fwd_cfg(struct airoha_eth *eth, u32 addr,
 --- a/drivers/net/ethernet/airoha/airoha_eth.h
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
-@@ -565,6 +565,7 @@ void airoha_ppe_check_skb(struct airoha_
+@@ -573,6 +573,7 @@ void airoha_ppe_check_skb(struct airoha_
  int airoha_ppe_setup_tc_block_cb(struct net_device *dev, void *type_data);
  int airoha_ppe_init(struct airoha_eth *eth);
  void airoha_ppe_deinit(struct airoha_eth *eth);
@@ -35,15 +35,15 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -222,6 +222,7 @@ static int airoha_ppe_foe_entry_prepare(
- 	u32 qid, channel = 0, qdata, ports_pad, val;
+@@ -225,6 +225,7 @@ static int airoha_ppe_foe_entry_prepare(
  	int dsa_port = airoha_get_dsa_port(&dev);
+ 	u32 channel = 0, qdata, ports_pad, val;
  	struct airoha_foe_mac_info_common *l2;
 +	u8 smac_id = 0xf;
  
  	memset(hwe, 0, sizeof(*hwe));
  
-@@ -253,6 +254,7 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -256,6 +257,7 @@ static int airoha_ppe_foe_entry_prepare(
  		val |= FIELD_PREP(AIROHA_FOE_IB2_PSE_PORT, pse_port);
  		channel = dsa_port >= 0 ? dsa_port : port->id;
  		channel = channel % AIROHA_NUM_QOS_CHANNELS;
@@ -51,7 +51,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	}
  
  	if (is_multicast_ether_addr(data->eth.h_dest))
-@@ -292,7 +294,7 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -293,7 +295,7 @@ static int airoha_ppe_foe_entry_prepare(
  		hwe->ipv4.l2.src_mac_lo =
  			get_unaligned_be16(data->eth.h_source + 4);
  	} else {
@@ -60,7 +60,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	}
  
  	if (data->vlan.num) {
-@@ -1018,6 +1020,27 @@ void airoha_ppe_check_skb(struct airoha_
+@@ -1022,6 +1024,27 @@ void airoha_ppe_check_skb(struct airoha_
  	airoha_ppe_foe_insert_entry(ppe, skb, hash);
  }
  
@@ -90,7 +90,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	struct airoha_ppe *ppe;
 --- a/drivers/net/ethernet/airoha/airoha_regs.h
 +++ b/drivers/net/ethernet/airoha/airoha_regs.h
-@@ -312,6 +312,16 @@
+@@ -313,6 +313,16 @@
  #define REG_PPE_RAM_BASE(_n)			(((_n) ? PPE2_BASE : PPE1_BASE) + 0x320)
  #define REG_PPE_RAM_ENTRY(_m, _n)		(REG_PPE_RAM_BASE(_m) + ((_n) << 2))
  

@@ -15,7 +15,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_eth.c
 +++ b/drivers/net/ethernet/airoha/airoha_eth.c
-@@ -707,7 +707,7 @@ static int airoha_qdma_rx_process(struct
+@@ -727,7 +727,7 @@ static int airoha_qdma_rx_process(struct
  
  		reason = FIELD_GET(AIROHA_RXD4_PPE_CPU_REASON, msg1);
  		if (reason == PPE_CPU_REASON_HIT_UNBIND_RATE_REACHED)
@@ -26,7 +26,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		napi_gro_receive(&q->napi, q->skb);
 --- a/drivers/net/ethernet/airoha/airoha_eth.h
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
-@@ -431,11 +431,15 @@ enum airoha_flow_entry_type {
+@@ -430,11 +430,15 @@ enum airoha_flow_entry_type {
  
  struct airoha_flow_table_entry {
  	union {
@@ -44,9 +44,9 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	u32 hash;
  
  	enum airoha_flow_entry_type type;
-@@ -551,7 +555,8 @@ u32 airoha_rmw(void __iomem *base, u32 o
- int airoha_is_valid_gdm_port(struct airoha_eth *eth,
- 			     struct airoha_gdm_port *port);
+@@ -559,7 +563,8 @@ u32 airoha_rmw(void __iomem *base, u32 o
+ bool airoha_is_valid_gdm_port(struct airoha_eth *eth,
+ 			      struct airoha_gdm_port *port);
  
 -void airoha_ppe_check_skb(struct airoha_ppe *ppe, u16 hash);
 +void airoha_ppe_check_skb(struct airoha_ppe *ppe, struct sk_buff *skb,
@@ -56,7 +56,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  int airoha_ppe_init(struct airoha_eth *eth);
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -204,6 +204,15 @@ static int airoha_get_dsa_port(struct ne
+@@ -207,6 +207,15 @@ static int airoha_get_dsa_port(struct ne
  #endif
  }
  
@@ -72,7 +72,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  static int airoha_ppe_foe_entry_prepare(struct airoha_eth *eth,
  					struct airoha_foe_entry *hwe,
  					struct net_device *dev, int type,
-@@ -262,13 +271,7 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -263,13 +272,7 @@ static int airoha_ppe_foe_entry_prepare(
  		FIELD_PREP(AIROHA_FOE_SHAPER_ID, 0x7f);
  
  	if (type == PPE_PKT_TYPE_BRIDGE) {
@@ -87,7 +87,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  		hwe->bridge.data = qdata;
  		hwe->bridge.ib2 = val;
  		l2 = &hwe->bridge.l2.common;
-@@ -393,6 +396,19 @@ static u32 airoha_ppe_foe_get_entry_hash
+@@ -394,6 +397,19 @@ static u32 airoha_ppe_foe_get_entry_hash
  		hv3 = hwe->ipv6.src_ip[1] ^ hwe->ipv6.dest_ip[1];
  		hv3 ^= hwe->ipv6.src_ip[0];
  		break;
@@ -107,7 +107,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	case PPE_PKT_TYPE_IPV4_DSLITE:
  	case PPE_PKT_TYPE_IPV6_6RD:
  	default:
-@@ -491,30 +507,100 @@ static int airoha_ppe_foe_commit_entry(s
+@@ -492,30 +508,100 @@ static int airoha_ppe_foe_commit_entry(s
  	return 0;
  }
  
@@ -222,7 +222,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	struct hlist_node *n;
  	u32 index, state;
  
-@@ -530,12 +616,33 @@ static void airoha_ppe_foe_insert_entry(
+@@ -531,12 +617,33 @@ static void airoha_ppe_foe_insert_entry(
  
  	index = airoha_ppe_foe_get_entry_hash(hwe);
  	hlist_for_each_entry_safe(e, n, &ppe->foe_flow[index], list) {
@@ -260,7 +260,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  unlock:
  	spin_unlock_bh(&ppe_lock);
  }
-@@ -899,7 +1006,8 @@ int airoha_ppe_setup_tc_block_cb(enum tc
+@@ -903,7 +1010,8 @@ int airoha_ppe_setup_tc_block_cb(enum tc
  	return err;
  }
  
@@ -270,7 +270,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  {
  	u16 now, diff;
  
-@@ -912,7 +1020,7 @@ void airoha_ppe_check_skb(struct airoha_
+@@ -916,7 +1024,7 @@ void airoha_ppe_check_skb(struct airoha_
  		return;
  
  	ppe->foe_check_time[hash] = now;

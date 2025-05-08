@@ -11,7 +11,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 
 --- a/drivers/net/ethernet/airoha/airoha_ppe.c
 +++ b/drivers/net/ethernet/airoha/airoha_ppe.c
-@@ -231,6 +231,7 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -234,6 +234,7 @@ static int airoha_ppe_foe_entry_prepare(
  	      FIELD_PREP(AIROHA_FOE_IB1_BIND_UDP, l4proto == IPPROTO_UDP) |
  	      FIELD_PREP(AIROHA_FOE_IB1_BIND_VLAN_LAYER, data->vlan.num) |
  	      FIELD_PREP(AIROHA_FOE_IB1_BIND_VPM, data->vlan.num) |
@@ -19,7 +19,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	      AIROHA_FOE_IB1_BIND_TTL;
  	hwe->ib1 = val;
  
-@@ -281,33 +282,37 @@ static int airoha_ppe_foe_entry_prepare(
+@@ -282,33 +283,37 @@ static int airoha_ppe_foe_entry_prepare(
  		hwe->ipv6.data = qdata;
  		hwe->ipv6.ib2 = val;
  		l2 = &hwe->ipv6.l2;
@@ -71,7 +71,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
  	}
  
  	return 0;
-@@ -786,6 +791,11 @@ static int airoha_ppe_flow_offload_repla
+@@ -790,6 +795,11 @@ static int airoha_ppe_flow_offload_repla
  		case FLOW_ACTION_VLAN_POP:
  			break;
  		case FLOW_ACTION_PPPOE_PUSH:
