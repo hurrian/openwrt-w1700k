@@ -75,7 +75,7 @@ index 314e7450313f..2a74bc8fed24 100644
 +	}
 +
 +	hw = en7523_register_pcie_clk(dev, clk_map);
-+	clk_data->hws[soc_data->num_clocks] = hw;
++	clk_data->hws[EN7523_CLK_PCIE] = hw;
 +}
 +
  static int en7581_pci_is_enabled(struct clk_hw *hw)
