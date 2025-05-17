@@ -3,6 +3,7 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/en7523-clk.h>
+#include <dt-bindings/phy/phy.h>
 #include <dt-bindings/reset/airoha,en7581-reset.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/thermal/thermal.h>
@@ -438,11 +439,19 @@
 			reg = <0x0 0x1fbe3400 0x0 0xff>;
 		};
 
-		scuclk: clock-controller@1fa20000 {
-			compatible = "airoha,en7581-scu";
+		system-controller@1fa20000 {
+			compatible = "syscon", "simple-mfd";
 			reg = <0x0 0x1fb00000 0x0 0x970>;
-			#clock-cells = <1>;
-			#reset-cells = <1>;
+
+			scuclk: scuclk {
+				compatible = "airoha,en7581-scu";
+
+				airoha,serdes-wifi1 = "pcie0_x2";
+				airoha,serdes-wifi2 = "pcie0_x2";
+
+				#clock-cells = <1>;
+				#reset-cells = <1>;
+			};
 		};
 
 		rng@1faa1000 {
@@ -566,7 +575,7 @@
 			status = "disabled";
 		};
 
-		pciephy: phy@1fa5a000 {
+		pciephy: phy@11e80000 {
 			compatible = "airoha,en7581-pcie-phy";
 			reg = <0x0 0x1fa5a000 0x0 0xfff>,
 			      <0x0 0x1fa5b000 0x0 0xfff>,
