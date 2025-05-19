@@ -3,7 +3,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_VERSION:=2025.01
 PKG_HASH:=cdef7d507c93f1bbd9f015ea9bc21fa074268481405501945abc6f854d5b686f
-PKG_BUILD_DEPENDS:=arm-trusted-firmware-tools/host mtd-utils/host
+PKG_BUILD_DEPENDS:=arm-trusted-firmware-tools/host
 
 UBOOT_USE_INTREE_DTC:=1
 
