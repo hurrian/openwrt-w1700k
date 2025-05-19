@@ -1,0 +1,153 @@
+From 8c33be3aca52a88f04a9005d6f9704d9c7f2015e Mon Sep 17 00:00:00 2001
+From: Christian Marangi <ansuelsmth@gmail.com>
+Date: Mon, 19 May 2025 14:29:53 +0200
+Subject: [PATCH 22/23] net: airoha: add support for Airoha AN7583
+
+Add support for Ethernet controller present in Airoha AN7583. This
+follow the same implementation of Airoha AN7581 with the only difference
+of having a different reset number and a different logic to reach the
+SCU node.
+
+Generalize the driver for these 2 part to account for these minor
+difference.
+
+Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+---
+ drivers/net/airoha_eth.c | 85 ++++++++++++++++++++++++++++++----------
+ 1 file changed, 65 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/net/airoha_eth.c b/drivers/net/airoha_eth.c
+index 7e35e1fd41d..d894d82ff3d 100644
+--- a/drivers/net/airoha_eth.c
++++ b/drivers/net/airoha_eth.c
+@@ -311,6 +311,25 @@ struct airoha_eth {
+ 	struct airoha_gdm_port *ports[AIROHA_MAX_NUM_GDM_PORTS];
+ };
+ 
++struct airoha_eth_soc_data {
++	int num_xsi_rsts;
++	const char * const *xsi_rsts_names;
++	ofnode (*get_scu_node)(struct udevice *dev);
++};
++
++static const char * const en7581_xsi_rsts_names[] = {
++	"hsi0-mac",
++	"hsi1-mac",
++	"hsi-mac",
++	"xfp-mac",
++};
++
++static const char * const an7583_xsi_rsts_names[] = {
++	"hsi0-mac",
++	"hsi1-mac",
++	"xfp-mac",
++};
++
+ static u32 airoha_rr(void __iomem *base, u32 offset)
+ {
+ 	return readl(base + offset);
+@@ -692,12 +711,13 @@ static int airoha_switch_init(struct udevice *dev, struct airoha_eth *eth)
+ 
+ static int airoha_eth_probe(struct udevice *dev)
+ {
++	struct airoha_eth_soc_data *data = (void *)dev_get_driver_data(dev);
+ 	struct airoha_eth *eth = dev_get_priv(dev);
+ 	struct regmap *scu_regmap;
+ 	ofnode scu_node;
+-	int ret;
++	int i, ret;
+ 
+-	scu_node = ofnode_by_compatible(ofnode_null(), "airoha,en7581-scu");
++	scu_node = data->get_scu_node(dev);
+ 	if (!ofnode_valid(scu_node))
+ 		return -EINVAL;
+ 
+@@ -721,11 +741,11 @@ static int airoha_eth_probe(struct udevice *dev)
+ 		return -ENOMEM;
+ 	eth->rsts.count = AIROHA_MAX_NUM_RSTS;
+ 
+-	eth->xsi_rsts.resets = devm_kcalloc(dev, AIROHA_MAX_NUM_XSI_RSTS,
++	eth->xsi_rsts.resets = devm_kcalloc(dev, data->num_xsi_rsts,
+ 					    sizeof(struct reset_ctl), GFP_KERNEL);
+ 	if (!eth->xsi_rsts.resets)
+ 		return -ENOMEM;
+-	eth->xsi_rsts.count = AIROHA_MAX_NUM_XSI_RSTS;
++	eth->xsi_rsts.count = data->num_xsi_rsts;
+ 
+ 	ret = reset_get_by_name(dev, "fe", &eth->rsts.resets[0]);
+ 	if (ret)
+@@ -739,21 +759,12 @@ static int airoha_eth_probe(struct udevice *dev)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = reset_get_by_name(dev, "hsi0-mac", &eth->xsi_rsts.resets[0]);
+-	if (ret)
+-		return ret;
+-
+-	ret = reset_get_by_name(dev, "hsi1-mac", &eth->xsi_rsts.resets[1]);
+-	if (ret)
+-		return ret;
+-
+-	ret = reset_get_by_name(dev, "hsi-mac", &eth->xsi_rsts.resets[2]);
+-	if (ret)
+-		return ret;
+-
+-	ret = reset_get_by_name(dev, "xfp-mac", &eth->xsi_rsts.resets[3]);
+-	if (ret)
+-		return ret;
++	for (i = 0; i < data->num_xsi_rsts; i++) {
++		ret = reset_get_by_name(dev, data->xsi_rsts_names[i],
++					&eth->xsi_rsts.resets[i]);
++		if (ret)
++			return ret;
++	}
+ 
+ 	ret = airoha_hw_init(dev, eth);
+ 	if (ret)
+@@ -924,8 +935,42 @@ static int arht_eth_write_hwaddr(struct udevice *dev)
+ 	return 0;
+ }
+ 
++
++static ofnode en7581_get_scu_node(struct udevice *dev)
++{
++	return ofnode_by_compatible(ofnode_null(), "airoha,en7581-scu");
++}
++
++static ofnode an7583_get_scu_node(struct udevice *dev)
++{
++	ofnode scu_node;
++
++	scu_node = ofnode_by_compatible(ofnode_null(), "airoha,an7583-scu");
++	if (!ofnode_valid(scu_node))
++		return scu_node;
++
++	return ofnode_get_parent(scu_node);
++}
++
++static const struct airoha_eth_soc_data en7581_data = {
++	.xsi_rsts_names = en7581_xsi_rsts_names,
++	.num_xsi_rsts = ARRAY_SIZE(en7581_xsi_rsts_names),
++	.get_scu_node = en7581_get_scu_node,
++};
++
++static const struct airoha_eth_soc_data an7583_data = {
++	.xsi_rsts_names = an7583_xsi_rsts_names,
++	.num_xsi_rsts = ARRAY_SIZE(an7583_xsi_rsts_names),
++	.get_scu_node = an7583_get_scu_node,
++};
++
+ static const struct udevice_id airoha_eth_ids[] = {
+-	{ .compatible = "airoha,en7581-eth" },
++	{ .compatible = "airoha,en7581-eth",
++	  .data = (ulong)&en7581_data,
++	},
++	{ .compatible = "airoha,an7583-eth",
++	  .data = (ulong)&an7583_data,
++	},
+ };
+ 
+ static const struct eth_ops airoha_eth_ops = {
+-- 
+2.48.1
+
