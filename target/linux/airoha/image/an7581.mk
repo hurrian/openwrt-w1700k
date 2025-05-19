@@ -1,6 +1,7 @@
 define Build/an7581-bl2-bl31-uboot
   head -c $$((0x800)) /dev/zero > $@
-  cat $(STAGING_DIR_IMAGE)/an7581_$1-u-boot.fip >> $@
+  cat $(STAGING_DIR_IMAGE)/an7581_$1-bl2.fip >> $@
+  dd if=$(STAGING_DIR_IMAGE)/an7581_$1-bl31-uboot.img of=$@ bs=1 seek=$$((0x20000)) conv=notrunc
 endef
 
 define Device/FitImageLzma

@@ -3,7 +3,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_VERSION:=2025.01
 PKG_HASH:=cdef7d507c93f1bbd9f015ea9bc21fa074268481405501945abc6f854d5b686f
-PKG_BUILD_DEPENDS:=arm-trusted-firmware-tools/host
+PKG_BUILD_DEPENDS:=arm-trusted-firmware-tools/host mtd-utils/host
 
 UBOOT_USE_INTREE_DTC:=1
 
@@ -20,7 +20,7 @@ define U-Boot/an7581_rfb
   UBOOT_IMAGE:=u-boot.fip
   FIP_COMPRESS:=1
   BL2_IMAGE:=an7581-bl2.bin
-  BL31_IMAGE:=an7581-bl31.lzma
+  BL31_IMAGE:=an7581-bl31.bin
 endef
 
 define U-Boot/an7583_rfb
@@ -32,7 +32,7 @@ define U-Boot/an7583_rfb
   UBOOT_IMAGE:=u-boot.fip
   FIP_COMPRESS:=1
   BL2_IMAGE:=an7583-bl2.bin
-  BL31_IMAGE:=an7583-bl31.lzma
+  BL31_IMAGE:=an7583-bl31.bin
 endef
 
 UBOOT_TARGETS := \
@@ -46,15 +46,30 @@ UBOOT_CUSTOMIZE_CONFIG := \
 	--enable SERIAL_RX_BUFFER \
 	--set-val SERIAL_RX_BUFFER_SIZE 256
 
+define Build/fip-image-bl2
+	$(STAGING_DIR_HOST)/bin/fiptool create \
+		--tb-fw files/$(BL2_IMAGE) \
+		$(PKG_BUILD_DIR)/bl2.fip
+endef
+
 define Build/fip-image
 	$(if $(FIP_COMPRESS), $(STAGING_DIR_HOST)/bin/lzma e \
 		$(PKG_BUILD_DIR)/u-boot.bin \
 		$(PKG_BUILD_DIR)/u-boot.bin.lzma)
+	$(if $(FIP_COMPRESS), $(STAGING_DIR_HOST)/bin/lzma e \
+		files/$(BL31_IMAGE) \
+		$(PKG_BUILD_DIR)/bl31.bin.lzma)
 	$(STAGING_DIR_HOST)/bin/fiptool create \
-		--tb-fw files/$(BL2_IMAGE) \
-		--soc-fw files/$(BL31_IMAGE) \
+		--soc-fw $(PKG_BUILD_DIR)/bl31.bin$(if $(FIP_COMPRESS),.lzma) \
 		--nt-fw $(PKG_BUILD_DIR)/u-boot.bin$(if $(FIP_COMPRESS),.lzma) \
 		$(PKG_BUILD_DIR)/u-boot.fip
+endef
+
+define Build/ubi-image
+	$(CP) files/ubinize.cfg $(PKG_BUILD_DIR)/ubinize.cfg
+	sed -i 's#U-BOOT_FIP_PATH#$(PKG_BUILD_DIR)/u-boot.fip#' $(PKG_BUILD_DIR)/ubinize.cfg
+	$(STAGING_DIR_HOST)/bin/ubinize $(PKG_BUILD_DIR)/ubinize.cfg \
+		-o $(PKG_BUILD_DIR)/ubi.img -m 2048 -p 128KiB
 endef
 
 define Build/Configure
@@ -65,7 +80,9 @@ endef
 define Build/Compile
 	$(call Build/Compile/U-Boot)
 ifeq ($(UBOOT_IMAGE),u-boot.fip)
+	$(call Build/fip-image-bl2)
 	$(call Build/fip-image)
+	$(call Build/ubi-image)
 endif
 endef
 
@@ -75,7 +92,8 @@ endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(UBOOT_IMAGE) $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-$(UBOOT_IMAGE)
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/bl2.fip $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-bl2.fip
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ubi.img $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-bl31-uboot.img
 endef
 
 $(eval $(call BuildPackage/U-Boot))
