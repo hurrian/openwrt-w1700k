@@ -16,3 +16,12 @@ define Device/airoha_an7583-evb
   IMAGE/sysupgrade.bin := append-kernel | pad-to 128k | append-rootfs | pad-rootfs | append-metadata
 endef
 TARGET_DEVICES += airoha_an7583-evb
+
+define Device/airoha_an7583-evb-emmc
+  DEVICE_VENDOR := Airoha
+  DEVICE_MODEL := AN7583 Evaluation Board (EMMC)
+  DEVICE_DTS := an7583-evb-emmc
+  DEVICE_DTS_DIR := ../dts
+  DEVICE_PACKAGES := kmod-i2c-an7581
+endef
+TARGET_DEVICES += airoha_an7583-evb-emmc
