@@ -93,6 +93,7 @@ endef
 define Build/InstallDev
 	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/bl2.fip $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-bl2.fip
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/u-boot.fip $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-bl31-u-boot.fip
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/ubi.img $(STAGING_DIR_IMAGE)/$(BUILD_VARIANT)-bl31-uboot.img
 endef
 
