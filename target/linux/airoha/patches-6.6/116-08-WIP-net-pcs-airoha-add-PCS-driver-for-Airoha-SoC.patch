@@ -55,7 +55,7 @@ new file mode 100644
 index 000000000000..e90a1f1f63e1
 --- /dev/null
 +++ b/drivers/net/pcs/pcs-airoha.c
-@@ -0,0 +1,2882 @@
+@@ -0,0 +1,2884 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2024 AIROHA Inc
@@ -923,8 +923,8 @@ index 000000000000..e90a1f1f63e1
 +
 +static void airoha_pcs_init_hsgmii(struct airoha_pcs_priv *priv)
 +{
-+	regmap_clear_bits(priv->multi_sgmii, AIROHA_PCS_MULTI_SGMII_MSG_RX_CTRL_0,
-+			  AIROHA_PCS_HSGMII_XFI_SEL);
++	regmap_set_bits(priv->multi_sgmii, AIROHA_PCS_MULTI_SGMII_MSG_RX_CTRL_0,
++			AIROHA_PCS_HSGMII_XFI_SEL);
 +
 +	regmap_set_bits(priv->hsgmii_pcs, AIROHA_PCS_HSGMII_PCS_CTROL_1,
 +			AIROHA_PCS_TBI_10B_MODE);
@@ -2497,23 +2497,25 @@ index 000000000000..e90a1f1f63e1
 +	}
 +
 +	/* Setup SGMII AN and advertisement in DEV_ABILITY */
-+	if (interface == PHY_INTERFACE_MODE_SGMII &&
-+	    neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED) {
-+		int advertise = phylink_mii_c22_pcs_encode_advertisement(interface,
-+									 advertising);
-+		if (advertise < 0)
-+			return advertise;
++	if (interface == PHY_INTERFACE_MODE_SGMII ||
++	    interface == PHY_INTERFACE_MODE_2500BASEX) {
++		    if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED) {
++			int advertise = phylink_mii_c22_pcs_encode_advertisement(interface,
++										 advertising);
++			if (advertise < 0)
++				return advertise;
 +
-+		regmap_set_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_0,
-+				AIROHA_PCS_HSGMII_AN_SGMII_RA_ENABLE);
++			regmap_set_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_0,
++					AIROHA_PCS_HSGMII_AN_SGMII_RA_ENABLE);
 +
-+		regmap_update_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_4,
-+				   AIROHA_PCS_HSGMII_AN_SGMII_DEV_ABILITY,
-+				   FIELD_PREP(AIROHA_PCS_HSGMII_AN_SGMII_DEV_ABILITY,
-+					      advertise));
-+	} else {
-+		regmap_clear_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_0,
-+				  AIROHA_PCS_HSGMII_AN_SGMII_RA_ENABLE);
++			regmap_update_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_4,
++					   AIROHA_PCS_HSGMII_AN_SGMII_DEV_ABILITY,
++					   FIELD_PREP(AIROHA_PCS_HSGMII_AN_SGMII_DEV_ABILITY,
++						      advertise));
++		} else {
++			regmap_clear_bits(priv->hsgmii_an, AIROHA_PCS_HSGMII_AN_SGMII_REG_AN_0,
++					  AIROHA_PCS_HSGMII_AN_SGMII_RA_ENABLE);
++		}
 +	}
 +
 +	if (interface == PHY_INTERFACE_MODE_SGMII ||
