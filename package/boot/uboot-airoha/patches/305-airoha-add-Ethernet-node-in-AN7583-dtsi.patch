@@ -1,7 +1,7 @@
-From a49361408dca7b5db0b7651af328146062eb04f0 Mon Sep 17 00:00:00 2001
+From 613d695d0939cbbe6b66933267e3a4be263e1c7b Mon Sep 17 00:00:00 2001
 From: Christian Marangi <ansuelsmth@gmail.com>
 Date: Mon, 19 May 2025 14:31:59 +0200
-Subject: [PATCH 6/6] airoha: add Ethernet node in AN7583 dtsi
+Subject: [PATCH 2/4] airoha: add Ethernet node in AN7583 dtsi
 
 Add Ethernet node in AN7583 dtsi to add support for the integrated
 Ethernet Controller.
@@ -12,7 +12,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  1 file changed, 23 insertions(+)
 
 diff --git a/arch/arm/dts/an7583.dtsi b/arch/arm/dts/an7583.dtsi
-index 30fb729fc02..b0903aaa49f 100644
+index 30fb729fc02..7f76bf194b6 100644
 --- a/arch/arm/dts/an7583.dtsi
 +++ b/arch/arm/dts/an7583.dtsi
 @@ -130,6 +130,29 @@
@@ -38,7 +38,7 @@ index 30fb729fc02..b0903aaa49f 100644
 +		};
 +
 +		switch: switch@1fb58000 {
-+			compatible = "airoha,en7581-switch";
++			compatible = "airoha,an7583-switch";
 +			reg = <0 0x1fb58000 0 0x8000>;
 +		};
 +
