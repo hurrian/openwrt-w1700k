@@ -17,10 +17,10 @@
 		#size-cells = <2>;
 		ranges;
 
-		npu_binary: npu-binary@84000000 {
-			no-map;
-			reg = <0x0 0x84000000 0x0 0xa00000>;
-		};
+		// npu_binary: npu-binary@84000000 {
+		// 	no-map;
+		// 	reg = <0x0 0x84000000 0x0 0xa00000>;
+		// };
 
 		qdma0_buf: qdma0-buf@87000000 {
 			no-map;
@@ -32,30 +32,30 @@
 			reg = <0x0 0x89000000 0x0 0x500000>;
 		};
 
-		npu_pkt: npu-pkt@89500000 {
-			no-map;
-			reg = <0x0 0x89500000 0x0 0x2c00000>;
-		};
+		// npu_pkt: npu-pkt@89500000 {
+		// 	no-map;
+		// 	reg = <0x0 0x89500000 0x0 0x2c00000>;
+		// };
 
-		npu_txpkt: npu-txpkt@8c100000 {
-			no-map;
-			reg = <0x0 0x8c100000 0x0 0x4000000>;
-		};
+		// npu_txpkt: npu-txpkt@8c100000 {
+		// 	no-map;
+		// 	reg = <0x0 0x8c100000 0x0 0x4000000>;
+		// };
 
-		npu_ba: npu-ba@90100000 {
-			no-map;
-			reg = <0x0 0x90100000 0x0 0x200000>;
-		};
+		// npu_ba: npu-ba@90100000 {
+		// 	no-map;
+		// 	reg = <0x0 0x90100000 0x0 0x200000>;
+		// };
 
-		npu_txbufid: npu-txbufid@90300000 {
-			no-map;
-			reg = <0x0 0x90300000 0x0 0x6800>;
-		};
+		// npu_txbufid: npu-txbufid@90300000 {
+		// 	no-map;
+		// 	reg = <0x0 0x90300000 0x0 0x6800>;
+		// };
 
-		npu_dbg: npu-dbg@90306800 {
-			no-map;
-			reg = <0x0 0x90306800 0x0 0x5780>;
-		};
+		// npu_dbg: npu-dbg@90306800 {
+		// 	no-map;
+		// 	reg = <0x0 0x90306800 0x0 0x5780>;
+		// };
 	};
 
 	psci {
@@ -115,6 +115,37 @@
 			     <GIC_PPI 10 IRQ_TYPE_LEVEL_LOW>;
 	};
 
+	thermal-zones {
+		cpu_thermal: cpu-thermal {
+			polling-delay-passive = <10000>;
+			polling-delay = <5000>;
+
+			thermal-sensors = <&thermal 0>;
+
+			trips {
+				cpu_hot: cpu-hot {
+					temperature = <95000>;
+					hysteresis = <1000>;
+					type = "hot";
+				};
+
+				cpu-critical {
+					temperature = <110000>;
+					hysteresis = <1000>;
+					type = "critical";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&cpu_hot>;
+					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+				};
+			};
+		};
+	};
+
 	clk25m: oscillator {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -151,8 +182,14 @@
 		};
 
 		chip_scu: syscon@1fa20000 {
-			compatible = "airoha,en7581-chip-scu", "syscon";
+			compatible = "airoha,en7581-chip-scu", "syscon", "simple-mfd";
 			reg = <0x0 0x1fa20000 0x0 0x388>;
+
+			thermal: thermal {
+				compatible = "airoha,an7583-thermal";
+
+				#thermal-sensor-cells = <0>;
+			};
 		};
 
 		syscon@1fbe3400 {
