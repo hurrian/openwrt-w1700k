@@ -1,8 +1,7 @@
-From 91ab1b1e23fc6002095e84b1f9d473dc6a2a141d Mon Sep 17 00:00:00 2001
+From 830877d89edcd834e4b4d0fcc021ff619d89505e Mon Sep 17 00:00:00 2001
 From: Christian Marangi <ansuelsmth@gmail.com>
-Date: Sun, 23 Mar 2025 23:23:55 +0100
-Subject: [net-next RFC PATCH v5 5/6] net: phy: Add support for Aeonsemi
- AS21xxx PHYs
+Date: Sat, 17 May 2025 22:13:49 +0200
+Subject: [PATCH 5/5] net: phy: Add support for Aeonsemi AS21xxx PHYs
 
 Add support for Aeonsemi AS21xxx 10G C45 PHYs. These PHYs integrate
 an IPC to setup some configuration and require special handling to
@@ -31,39 +30,25 @@ AS21x1xxB1
     5: 5G, 2.5G
     2: 2.5G
 
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+Link: https://patch.msgid.link/20250517201353.5137-6-ansuelsmth@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
 ---
  MAINTAINERS               |    6 +
  drivers/net/phy/Kconfig   |   12 +
  drivers/net/phy/Makefile  |    1 +
- drivers/net/phy/as21xxx.c | 1067 +++++++++++++++++++++++++++++++++++++
- 4 files changed, 1086 insertions(+)
+ drivers/net/phy/as21xxx.c | 1087 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 1106 insertions(+)
  create mode 100644 drivers/net/phy/as21xxx.c
 
-# diff --git a/MAINTAINERS b/MAINTAINERS
-# index 1cd25139cc58..53ca93b0cc18 100644
-# --- a/MAINTAINERS
-# +++ b/MAINTAINERS
-# @@ -646,6 +646,12 @@ F:	drivers/iio/accel/adxl380.h
-#  F:	drivers/iio/accel/adxl380_i2c.c
-#  F:	drivers/iio/accel/adxl380_spi.c
- 
-# +AEONSEMI PHY DRIVER
-# +M:	Christian Marangi <ansuelsmth@gmail.com>
-# +L:	netdev@vger.kernel.org
-# +S:	Maintained
-# +F:	drivers/net/phy/as21xxx.c
-# +
-#  AF8133J THREE-AXIS MAGNETOMETER DRIVER
-#  M:	Ondřej Jirman <megi@xff.cz>
-#  S:	Maintained
 diff --git a/drivers/net/phy/Kconfig b/drivers/net/phy/Kconfig
-index d29f9f7fd2e1..ba897103d68d 100644
+index 127a9fd0feb9..a95cecabfe1b 100644
 --- a/drivers/net/phy/Kconfig
 +++ b/drivers/net/phy/Kconfig
-@@ -119,6 +119,18 @@ config AMCC_QT2025_PHY
- 	help
- 	  Adds support for the Applied Micro Circuits Corporation QT2025 PHY.
+@@ -76,6 +76,18 @@ config SFP
+ 
+ comment "MII PHY device drivers"
  
 +config AS21XXX_PHY
 +	tristate "Aeonsemi AS21xxx PHYs"
@@ -77,14 +62,14 @@ index d29f9f7fd2e1..ba897103d68d 100644
 +	  AS21210PB1 that all register with the PHY ID 0x7500 0x7500
 +	  before the firmware is loaded.
 +
- source "drivers/net/phy/aquantia/Kconfig"
- 
- config AX88796B_PHY
+ config AIR_EN8811H_PHY
+ 	tristate "Airoha EN8811H 2.5 Gigabit PHY"
+ 	help
 diff --git a/drivers/net/phy/Makefile b/drivers/net/phy/Makefile
-index 23ce205ae91d..a505a6db68fd 100644
+index 7de69320a3a7..57933366fe54 100644
 --- a/drivers/net/phy/Makefile
 +++ b/drivers/net/phy/Makefile
-@@ -40,6 +40,7 @@ obj-$(CONFIG_AIR_EN8811H_PHY)   += air_en8811h.o
+@@ -32,6 +32,7 @@ obj-$(CONFIG_AIR_EN8811H_PHY)   += air_en8811h.o
  obj-$(CONFIG_AMD_PHY)		+= amd.o
  obj-$(CONFIG_AMCC_QT2025_PHY)	+= qt2025.o
  obj-$(CONFIG_AQUANTIA_PHY)	+= aquantia/
@@ -94,10 +79,10 @@ index 23ce205ae91d..a505a6db68fd 100644
  obj-$(CONFIG_BCM63XX_PHY)	+= bcm63xx.o
 diff --git a/drivers/net/phy/as21xxx.c b/drivers/net/phy/as21xxx.c
 new file mode 100644
-index 000000000000..8e1d0845db36
+index 000000000000..92697f43087d
 --- /dev/null
 +++ b/drivers/net/phy/as21xxx.c
-@@ -0,0 +1,1067 @@
+@@ -0,0 +1,1087 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Aeonsemi AS21XXxX PHY Driver
@@ -241,10 +226,11 @@ index 000000000000..8e1d0845db36
 +#define PHY_ID_AS21210PB1		0x75009492
 +#define PHY_VENDOR_AEONSEMI		0x75009400
 +
-+#define AEON_MAX_LDES			5
++#define AEON_MAX_LEDS			5
 +#define AEON_IPC_DELAY			10000
 +#define AEON_IPC_TIMEOUT		(AEON_IPC_DELAY * 100)
-+#define AEON_IPC_DATA_MAX		(8 * sizeof(u16))
++#define AEON_IPC_DATA_NUM_REGISTERS	8
++#define AEON_IPC_DATA_MAX		(AEON_IPC_DATA_NUM_REGISTERS * sizeof(u16))
 +
 +#define AEON_BOOT_ADDR			0x1000
 +#define AEON_CPU_BOOT_ADDR		0x2000
@@ -474,7 +460,21 @@ index 000000000000..8e1d0845db36
 +	return ret;
 +}
 +
-+static int aeon_ipcs_wait_cmd(struct phy_device *phydev, bool parity_status)
++static bool aeon_ipc_ready(u16 val, bool parity_status)
++{
++	u16 status;
++
++	if (FIELD_GET(AEON_IPC_STS_PARITY, val) != parity_status)
++		return false;
++
++	status = val & AEON_IPC_STS_STATUS;
++
++	return status != AEON_IPC_STS_STATUS_RCVD &&
++	       status != AEON_IPC_STS_STATUS_PROCESS &&
++	       status != AEON_IPC_STS_STATUS_BUSY;
++}
++
++static int aeon_ipc_wait_cmd(struct phy_device *phydev, bool parity_status)
 +{
 +	u16 val;
 +
@@ -483,10 +483,7 @@ index 000000000000..8e1d0845db36
 +	 * - Wait for status success, error OR ready
 +	 */
 +	return phy_read_mmd_poll_timeout(phydev, MDIO_MMD_VEND1, VEND1_IPC_STS, val,
-+					 FIELD_GET(AEON_IPC_STS_PARITY, val) == parity_status &&
-+					 (val & AEON_IPC_STS_STATUS) != AEON_IPC_STS_STATUS_RCVD &&
-+					 (val & AEON_IPC_STS_STATUS) != AEON_IPC_STS_STATUS_PROCESS &&
-+					 (val & AEON_IPC_STS_STATUS) != AEON_IPC_STS_STATUS_BUSY,
++					 aeon_ipc_ready(val, parity_status),
 +					 AEON_IPC_DELAY, AEON_IPC_TIMEOUT, false);
 +}
 +
@@ -521,7 +518,7 @@ index 000000000000..8e1d0845db36
 +	if (!ret_sts)
 +		return 0;
 +
-+	ret = aeon_ipcs_wait_cmd(phydev, curr_parity);
++	ret = aeon_ipc_wait_cmd(phydev, curr_parity);
 +	if (ret)
 +		return ret;
 +
@@ -536,12 +533,17 @@ index 000000000000..8e1d0845db36
 +	return 0;
 +}
 +
++/* If data is NULL, return 0 or negative error.
++ * If data not NULL, return number of Bytes received from IPC or
++ * a negative error.
++ */
 +static int aeon_ipc_send_msg(struct phy_device *phydev,
 +			     u16 opcode, u16 *data, unsigned int data_len,
-+			     u16 *ret_sts)
++			     u16 *ret_data)
 +{
 +	struct as21xxx_priv *priv = phydev->priv;
-+	u16 cmd;
++	unsigned int ret_size;
++	u16 cmd, ret_sts;
 +	int ret;
 +	int i;
 +
@@ -551,56 +553,55 @@ index 000000000000..8e1d0845db36
 +	if (data_len > AEON_IPC_DATA_MAX)
 +		return -EINVAL;
 +
-+	mutex_lock(&priv->ipc_lock);
-+
 +	for (i = 0; i < data_len / sizeof(u16); i++)
 +		phy_write_mmd(phydev, MDIO_MMD_VEND1, VEND1_IPC_DATA(i),
 +			      data[i]);
 +
 +	cmd = FIELD_PREP(AEON_IPC_CMD_SIZE, data_len) |
 +	      FIELD_PREP(AEON_IPC_CMD_OPCODE, opcode);
-+	ret = aeon_ipc_send_cmd(phydev, priv, cmd, ret_sts);
-+	if (ret)
-+		phydev_err(phydev, "failed to send ipc msg for %x: %d\n",
-+			   opcode, ret);
-+
-+	mutex_unlock(&priv->ipc_lock);
-+
-+	return ret;
-+}
-+
-+static int aeon_ipc_rcv_msg(struct phy_device *phydev,
-+			    u16 ret_sts, u16 *data)
-+{
-+	struct as21xxx_priv *priv = phydev->priv;
-+	unsigned int size;
-+	int ret;
-+	int i;
-+
-+	if ((ret_sts & AEON_IPC_STS_STATUS) == AEON_IPC_STS_STATUS_ERROR)
-+		return -EINVAL;
-+
-+	/* Prevent IPC from stack smashing the kernel */
-+	size = FIELD_GET(AEON_IPC_STS_SIZE, ret_sts);
-+	if (size > AEON_IPC_DATA_MAX)
-+		return -EINVAL;
 +
 +	mutex_lock(&priv->ipc_lock);
 +
-+	for (i = 0; i < DIV_ROUND_UP(size, sizeof(u16)); i++) {
-+		ret = phy_read_mmd(phydev, MDIO_MMD_VEND1, VEND1_IPC_DATA(i));
-+		if (ret < 0) {
-+			size = ret;
-+			goto out;
-+		}
-+
-+		data[i] = ret;
++	ret = aeon_ipc_send_cmd(phydev, priv, cmd, &ret_sts);
++	if (ret) {
++		phydev_err(phydev, "failed to send ipc msg for %x: %d\n",
++			   opcode, ret);
++		goto out;
 +	}
++
++	if (!data)
++		goto out;
++
++	if ((ret_sts & AEON_IPC_STS_STATUS) == AEON_IPC_STS_STATUS_ERROR) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	/* Prevent IPC from stack smashing the kernel.
++	 * We can't trust IPC to return a good value and we always
++	 * preallocate space for 16 Bytes.
++	 */
++	ret_size = FIELD_GET(AEON_IPC_STS_SIZE, ret_sts);
++	if (ret_size > AEON_IPC_DATA_MAX) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	/* Read data from IPC data register for ret_size value from IPC */
++	for (i = 0; i < DIV_ROUND_UP(ret_size, sizeof(u16)); i++) {
++		ret = phy_read_mmd(phydev, MDIO_MMD_VEND1, VEND1_IPC_DATA(i));
++		if (ret < 0)
++			goto out;
++
++		ret_data[i] = ret;
++	}
++
++	ret = ret_size;
 +
 +out:
 +	mutex_unlock(&priv->ipc_lock);
 +
-+	return size;
++	return ret;
 +}
 +
 +static int aeon_ipc_noop(struct phy_device *phydev,
@@ -653,21 +654,22 @@ index 000000000000..8e1d0845db36
 +
 +static int aeon_ipc_get_fw_version(struct phy_device *phydev)
 +{
-+	u16 ret_data[8], data[1];
-+	u16 ret_sts;
++	u16 ret_data[AEON_IPC_DATA_NUM_REGISTERS], data[1];
++	char fw_version[AEON_IPC_DATA_MAX + 1];
 +	int ret;
 +
 +	data[0] = IPC_INFO_VERSION;
-+	ret = aeon_ipc_send_msg(phydev, IPC_CMD_INFO, data,
-+				sizeof(data), &ret_sts);
-+	if (ret)
-+		return ret;
 +
-+	ret = aeon_ipc_rcv_msg(phydev, ret_sts, ret_data);
++	ret = aeon_ipc_send_msg(phydev, IPC_CMD_INFO, data,
++				sizeof(data), ret_data);
 +	if (ret < 0)
 +		return ret;
 +
-+	phydev_info(phydev, "Firmware Version: %s\n", (char *)ret_data);
++	/* Make sure FW version is NULL terminated */
++	memcpy(fw_version, ret_data, ret);
++	fw_version[ret] = '\0';
++
++	phydev_info(phydev, "Firmware Version: %s\n", fw_version);
 +
 +	return 0;
 +}
@@ -675,13 +677,12 @@ index 000000000000..8e1d0845db36
 +static int aeon_dpc_ra_enable(struct phy_device *phydev)
 +{
 +	u16 data[2];
-+	u16 ret_sts;
 +
 +	data[0] = IPC_CFG_PARAM_DIRECT;
 +	data[1] = IPC_CFG_PARAM_DIRECT_DPC_RA;
 +
 +	return aeon_ipc_send_msg(phydev, IPC_CMD_CFG_PARAM, data,
-+				 sizeof(data), &ret_sts);
++				 sizeof(data), NULL);
 +}
 +
 +static int as21xxx_probe(struct phy_device *phydev)
@@ -857,7 +858,7 @@ index 000000000000..8e1d0845db36
 +{
 +	u16 val = VEND1_LED_REG_A_EVENT_OFF;
 +
-+	if (index > AEON_MAX_LDES)
++	if (index > AEON_MAX_LEDS)
 +		return -EINVAL;
 +
 +	if (value)
@@ -874,7 +875,7 @@ index 000000000000..8e1d0845db36
 +{
 +	int i;
 +
-+	if (index > AEON_MAX_LDES)
++	if (index > AEON_MAX_LEDS)
 +		return -EINVAL;
 +
 +	for (i = 0; i < ARRAY_SIZE(as21xxx_led_supported_pattern); i++)
@@ -889,7 +890,7 @@ index 000000000000..8e1d0845db36
 +{
 +	int i, val;
 +
-+	if (index > AEON_MAX_LDES)
++	if (index > AEON_MAX_LEDS)
 +		return -EINVAL;
 +
 +	val = phy_read_mmd(phydev, MDIO_MMD_VEND1, VEND1_LED_REG(index));
@@ -913,7 +914,7 @@ index 000000000000..8e1d0845db36
 +	u16 val = 0;
 +	int i;
 +
-+	if (index > AEON_MAX_LDES)
++	if (index > AEON_MAX_LEDS)
 +		return -EINVAL;
 +
 +	for (i = 0; i < ARRAY_SIZE(as21xxx_led_supported_pattern); i++)
@@ -935,7 +936,7 @@ index 000000000000..8e1d0845db36
 +	u16 mask, val = 0;
 +	u32 mode;
 +
-+	if (index > AEON_MAX_LDES)
++	if (index > AEON_MAX_LEDS)
 +		return -EINVAL;
 +
 +	for_each_set_bit(mode, &modes, __PHY_LED_MODES_NUM) {
@@ -1014,10 +1015,14 @@ index 000000000000..8e1d0845db36
 +	mutex_destroy(&priv->ipc_lock);
 +	kfree(priv);
 +
-+	/* Return not maching anyway as PHY ID will change after
-+	 * firmware is loaded. This relies on the driver probe
-+	 * order where the first PHY driver probed is the
-+	 * generic one.
++	/* Return can either be 0 or a negative error code.
++	 * Returning 0 here means THIS is NOT a suitable PHY.
++	 *
++	 * For the specific case of the generic Aeonsemi PHY ID that
++	 * needs the firmware the be loaded first to have a correct PHY ID,
++	 * this is OK as a matching PHY ID will be found right after.
++	 * This relies on the driver probe order where the first PHY driver
++	 * probed is the generic one.
 +	 */
 +	return ret;
 +}

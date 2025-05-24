@@ -1,8 +1,7 @@
-From 5590c2e376cc6cd67901ef22852bce94f46b4941 Mon Sep 17 00:00:00 2001
+From d6c45707ac84c2d9f274ece1cea4dddb97996bde Mon Sep 17 00:00:00 2001
 From: Christian Marangi <ansuelsmth@gmail.com>
-Date: Thu, 27 Mar 2025 17:30:34 +0100
-Subject: [net-next RFC PATCH v5 4/6] net: phy: introduce
- genphy_match_phy_device()
+Date: Sat, 17 May 2025 22:13:48 +0200
+Subject: [PATCH 4/5] net: phy: introduce genphy_match_phy_device()
 
 Introduce new API, genphy_match_phy_device(), to provide a way to check
 to match a PHY driver for a PHY device based on the info stored in the
@@ -15,17 +14,20 @@ This is useful for custom .match_phy_device function that wants to use
 the generic logic under some condition. (example a PHY is already setup
 and provide the correct PHY ID)
 
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+Link: https://patch.msgid.link/20250517201353.5137-5-ansuelsmth@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
 ---
  drivers/net/phy/phy_device.c | 52 +++++++++++++++++++++++++-----------
  include/linux/phy.h          |  3 +++
  2 files changed, 40 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
-index 2d6ceacb2986..ead9a047043a 100644
+index 6006cff1a73e..0f6f86252622 100644
 --- a/drivers/net/phy/phy_device.c
 +++ b/drivers/net/phy/phy_device.c
-@@ -503,20 +503,26 @@ static int phy_scan_fixups(struct phy_device *phydev)
+@@ -543,20 +543,26 @@ static int phy_scan_fixups(struct phy_device *phydev)
  	return 0;
  }
  
@@ -64,7 +66,7 @@ index 2d6ceacb2986..ead9a047043a 100644
  		for (i = 1; i < num_ids; i++) {
  			if (phydev->c45_ids.device_ids[i] == 0xffffffff)
  				continue;
-@@ -525,11 +531,27 @@ static int phy_bus_match(struct device *dev, const struct device_driver *drv)
+@@ -565,11 +571,27 @@ static int phy_bus_match(struct device *dev, const struct device_driver *drv)
  					   phydrv->phy_id, phydrv->phy_id_mask))
  				return 1;
  		}
@@ -96,10 +98,10 @@ index 2d6ceacb2986..ead9a047043a 100644
  
  static ssize_t
 diff --git a/include/linux/phy.h b/include/linux/phy.h
-index 7042ceaadcc6..b7aa805e0ad6 100644
+index 10e66d45a8e8..32b9da274115 100644
 --- a/include/linux/phy.h
 +++ b/include/linux/phy.h
-@@ -1911,6 +1911,9 @@ char *phy_attached_info_irq(struct phy_device *phydev)
+@@ -1868,6 +1868,9 @@ char *phy_attached_info_irq(struct phy_device *phydev)
  	__malloc;
  void phy_attached_info(struct phy_device *phydev);
  
