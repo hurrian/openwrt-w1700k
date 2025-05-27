@@ -1,4 +1,4 @@
-From 2c4eb744875311c2760ad63481078a529c6f1200 Mon Sep 17 00:00:00 2001
+From e77c958d8eab1c29008ab57a2be82daefe886e0a Mon Sep 17 00:00:00 2001
 From: Christian Marangi <ansuelsmth@gmail.com>
 Date: Sun, 25 May 2025 19:25:20 +0200
 Subject: [PATCH 2/5] pinctrl: mediatek: airoha: generalize
@@ -13,13 +13,34 @@ This permits to use different PIN data while keeping the same logic.
 
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 ---
- drivers/pinctrl/mediatek/pinctrl-airoha.c | 511 ++++++++++++----------
- 1 file changed, 290 insertions(+), 221 deletions(-)
+ drivers/pinctrl/mediatek/pinctrl-airoha.c | 569 ++++++++++++----------
+ 1 file changed, 319 insertions(+), 250 deletions(-)
 
 diff --git a/drivers/pinctrl/mediatek/pinctrl-airoha.c b/drivers/pinctrl/mediatek/pinctrl-airoha.c
-index 8ef7f88477aa..e00a90067462 100644
+index 8ef7f88477aa..8af9109db992 100644
 --- a/drivers/pinctrl/mediatek/pinctrl-airoha.c
 +++ b/drivers/pinctrl/mediatek/pinctrl-airoha.c
+@@ -30,14 +30,14 @@
+ #include "../pinconf.h"
+ #include "../pinmux.h"
+ 
+-#define PINCTRL_PIN_GROUP(id)						\
+-	PINCTRL_PINGROUP(#id, id##_pins, ARRAY_SIZE(id##_pins))
++#define PINCTRL_PIN_GROUP(id, table)					\
++	PINCTRL_PINGROUP(id, table##_pins, ARRAY_SIZE(table##_pins))
+ 
+-#define PINCTRL_FUNC_DESC(id)						\
++#define PINCTRL_FUNC_DESC(id, table)					\
+ 	{								\
+-		.desc = { #id, id##_groups, ARRAY_SIZE(id##_groups) },	\
+-		.groups = id##_func_group,				\
+-		.group_size = ARRAY_SIZE(id##_func_group),		\
++		.desc = { id, table##_groups, ARRAY_SIZE(table##_groups) }, \
++		.groups = table##_func_group,				\
++		.group_size = ARRAY_SIZE(table##_func_group),		\
+ 	}
+ 
+ #define PINCTRL_CONF_DESC(p, offset, mask)				\
 @@ -359,16 +359,46 @@ struct airoha_pinctrl_gpiochip {
  	u32 irq_type[AIROHA_NUM_PINS];
  };
@@ -322,102 +343,143 @@ index 8ef7f88477aa..e00a90067462 100644
 +static const int en7581_pcie_reset2_pins[] = { 63 };
 +
 +static const struct pingroup en7581_pinctrl_groups[] = {
-+	PINCTRL_PIN_GROUP(en7581_pon),
-+	PINCTRL_PIN_GROUP(en7581_pon_tod_1pps),
-+	PINCTRL_PIN_GROUP(en7581_gsw_tod_1pps),
-+	PINCTRL_PIN_GROUP(en7581_sipo),
-+	PINCTRL_PIN_GROUP(en7581_sipo_rclk),
-+	PINCTRL_PIN_GROUP(en7581_mdio),
-+	PINCTRL_PIN_GROUP(en7581_uart2),
-+	PINCTRL_PIN_GROUP(en7581_uart2_cts_rts),
-+	PINCTRL_PIN_GROUP(en7581_hsuart),
-+	PINCTRL_PIN_GROUP(en7581_hsuart_cts_rts),
-+	PINCTRL_PIN_GROUP(en7581_uart4),
-+	PINCTRL_PIN_GROUP(en7581_uart5),
-+	PINCTRL_PIN_GROUP(en7581_i2c0),
-+	PINCTRL_PIN_GROUP(en7581_i2c1),
-+	PINCTRL_PIN_GROUP(en7581_jtag_udi),
-+	PINCTRL_PIN_GROUP(en7581_jtag_dfd),
-+	PINCTRL_PIN_GROUP(en7581_i2s),
-+	PINCTRL_PIN_GROUP(en7581_pcm1),
-+	PINCTRL_PIN_GROUP(en7581_pcm2),
-+	PINCTRL_PIN_GROUP(en7581_spi),
-+	PINCTRL_PIN_GROUP(en7581_spi_quad),
-+	PINCTRL_PIN_GROUP(en7581_spi_cs1),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_int),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_rst),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs1),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs2_p128),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs2_p156),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs2),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs3),
-+	PINCTRL_PIN_GROUP(en7581_pcm_spi_cs4),
-+	PINCTRL_PIN_GROUP(en7581_emmc),
-+	PINCTRL_PIN_GROUP(en7581_pnand),
-+	PINCTRL_PIN_GROUP(en7581_gpio0),
-+	PINCTRL_PIN_GROUP(en7581_gpio1),
-+	PINCTRL_PIN_GROUP(en7581_gpio2),
-+	PINCTRL_PIN_GROUP(en7581_gpio3),
-+	PINCTRL_PIN_GROUP(en7581_gpio4),
-+	PINCTRL_PIN_GROUP(en7581_gpio5),
-+	PINCTRL_PIN_GROUP(en7581_gpio6),
-+	PINCTRL_PIN_GROUP(en7581_gpio7),
-+	PINCTRL_PIN_GROUP(en7581_gpio8),
-+	PINCTRL_PIN_GROUP(en7581_gpio9),
-+	PINCTRL_PIN_GROUP(en7581_gpio10),
-+	PINCTRL_PIN_GROUP(en7581_gpio11),
-+	PINCTRL_PIN_GROUP(en7581_gpio12),
-+	PINCTRL_PIN_GROUP(en7581_gpio13),
-+	PINCTRL_PIN_GROUP(en7581_gpio14),
-+	PINCTRL_PIN_GROUP(en7581_gpio15),
-+	PINCTRL_PIN_GROUP(en7581_gpio16),
-+	PINCTRL_PIN_GROUP(en7581_gpio17),
-+	PINCTRL_PIN_GROUP(en7581_gpio18),
-+	PINCTRL_PIN_GROUP(en7581_gpio19),
-+	PINCTRL_PIN_GROUP(en7581_gpio20),
-+	PINCTRL_PIN_GROUP(en7581_gpio21),
-+	PINCTRL_PIN_GROUP(en7581_gpio22),
-+	PINCTRL_PIN_GROUP(en7581_gpio23),
-+	PINCTRL_PIN_GROUP(en7581_gpio24),
-+	PINCTRL_PIN_GROUP(en7581_gpio25),
-+	PINCTRL_PIN_GROUP(en7581_gpio26),
-+	PINCTRL_PIN_GROUP(en7581_gpio27),
-+	PINCTRL_PIN_GROUP(en7581_gpio28),
-+	PINCTRL_PIN_GROUP(en7581_gpio29),
-+	PINCTRL_PIN_GROUP(en7581_gpio30),
-+	PINCTRL_PIN_GROUP(en7581_gpio31),
-+	PINCTRL_PIN_GROUP(en7581_gpio33),
-+	PINCTRL_PIN_GROUP(en7581_gpio34),
-+	PINCTRL_PIN_GROUP(en7581_gpio35),
-+	PINCTRL_PIN_GROUP(en7581_gpio36),
-+	PINCTRL_PIN_GROUP(en7581_gpio37),
-+	PINCTRL_PIN_GROUP(en7581_gpio38),
-+	PINCTRL_PIN_GROUP(en7581_gpio39),
-+	PINCTRL_PIN_GROUP(en7581_gpio40),
-+	PINCTRL_PIN_GROUP(en7581_gpio41),
-+	PINCTRL_PIN_GROUP(en7581_gpio42),
-+	PINCTRL_PIN_GROUP(en7581_gpio43),
-+	PINCTRL_PIN_GROUP(en7581_gpio44),
-+	PINCTRL_PIN_GROUP(en7581_gpio45),
-+	PINCTRL_PIN_GROUP(en7581_gpio46),
-+	PINCTRL_PIN_GROUP(en7581_pcie_reset0),
-+	PINCTRL_PIN_GROUP(en7581_pcie_reset1),
-+	PINCTRL_PIN_GROUP(en7581_pcie_reset2),
++	PINCTRL_PIN_GROUP("pon", en7581_pon),
++	PINCTRL_PIN_GROUP("pon_tod_1pps", en7581_pon_tod_1pps),
++	PINCTRL_PIN_GROUP("gsw_tod_1pps", en7581_gsw_tod_1pps),
++	PINCTRL_PIN_GROUP("sipo", en7581_sipo),
++	PINCTRL_PIN_GROUP("sipo_rclk", en7581_sipo_rclk),
++	PINCTRL_PIN_GROUP("mdio", en7581_mdio),
++	PINCTRL_PIN_GROUP("uart2", en7581_uart2),
++	PINCTRL_PIN_GROUP("uart2_cts_rts", en7581_uart2_cts_rts),
++	PINCTRL_PIN_GROUP("hsuart", en7581_hsuart),
++	PINCTRL_PIN_GROUP("hsuart_cts_rts", en7581_hsuart_cts_rts),
++	PINCTRL_PIN_GROUP("uart4", en7581_uart4),
++	PINCTRL_PIN_GROUP("uart5", en7581_uart5),
++	PINCTRL_PIN_GROUP("i2c0", en7581_i2c0),
++	PINCTRL_PIN_GROUP("i2c1", en7581_i2c1),
++	PINCTRL_PIN_GROUP("jtag_udi", en7581_jtag_udi),
++	PINCTRL_PIN_GROUP("jtag_dfd", en7581_jtag_dfd),
++	PINCTRL_PIN_GROUP("i2s", en7581_i2s),
++	PINCTRL_PIN_GROUP("pcm1", en7581_pcm1),
++	PINCTRL_PIN_GROUP("pcm2", en7581_pcm2),
++	PINCTRL_PIN_GROUP("spi", en7581_spi),
++	PINCTRL_PIN_GROUP("spi_quad", en7581_spi_quad),
++	PINCTRL_PIN_GROUP("spi_cs1", en7581_spi_cs1),
++	PINCTRL_PIN_GROUP("pcm_spi", en7581_pcm_spi),
++	PINCTRL_PIN_GROUP("pcm_spi_int", en7581_pcm_spi_int),
++	PINCTRL_PIN_GROUP("pcm_spi_rst", en7581_pcm_spi_rst),
++	PINCTRL_PIN_GROUP("pcm_spi_cs1", en7581_pcm_spi_cs1),
++	PINCTRL_PIN_GROUP("pcm_spi_cs2_p128", en7581_pcm_spi_cs2_p128),
++	PINCTRL_PIN_GROUP("pcm_spi_cs2_p156", en7581_pcm_spi_cs2_p156),
++	PINCTRL_PIN_GROUP("pcm_spi_cs2", en7581_pcm_spi_cs2),
++	PINCTRL_PIN_GROUP("pcm_spi_cs3", en7581_pcm_spi_cs3),
++	PINCTRL_PIN_GROUP("pcm_spi_cs4", en7581_pcm_spi_cs4),
++	PINCTRL_PIN_GROUP("emmc", en7581_emmc),
++	PINCTRL_PIN_GROUP("pnand", en7581_pnand),
++	PINCTRL_PIN_GROUP("gpio0", en7581_gpio0),
++	PINCTRL_PIN_GROUP("gpio1", en7581_gpio1),
++	PINCTRL_PIN_GROUP("gpio2", en7581_gpio2),
++	PINCTRL_PIN_GROUP("gpio3", en7581_gpio3),
++	PINCTRL_PIN_GROUP("gpio4", en7581_gpio4),
++	PINCTRL_PIN_GROUP("gpio5", en7581_gpio5),
++	PINCTRL_PIN_GROUP("gpio6", en7581_gpio6),
++	PINCTRL_PIN_GROUP("gpio7", en7581_gpio7),
++	PINCTRL_PIN_GROUP("gpio8", en7581_gpio8),
++	PINCTRL_PIN_GROUP("gpio9", en7581_gpio9),
++	PINCTRL_PIN_GROUP("gpio10", en7581_gpio10),
++	PINCTRL_PIN_GROUP("gpio11", en7581_gpio11),
++	PINCTRL_PIN_GROUP("gpio12", en7581_gpio12),
++	PINCTRL_PIN_GROUP("gpio13", en7581_gpio13),
++	PINCTRL_PIN_GROUP("gpio14", en7581_gpio14),
++	PINCTRL_PIN_GROUP("gpio15", en7581_gpio15),
++	PINCTRL_PIN_GROUP("gpio16", en7581_gpio16),
++	PINCTRL_PIN_GROUP("gpio17", en7581_gpio17),
++	PINCTRL_PIN_GROUP("gpio18", en7581_gpio18),
++	PINCTRL_PIN_GROUP("gpio19", en7581_gpio19),
++	PINCTRL_PIN_GROUP("gpio20", en7581_gpio20),
++	PINCTRL_PIN_GROUP("gpio21", en7581_gpio21),
++	PINCTRL_PIN_GROUP("gpio22", en7581_gpio22),
++	PINCTRL_PIN_GROUP("gpio23", en7581_gpio23),
++	PINCTRL_PIN_GROUP("gpio24", en7581_gpio24),
++	PINCTRL_PIN_GROUP("gpio25", en7581_gpio25),
++	PINCTRL_PIN_GROUP("gpio26", en7581_gpio26),
++	PINCTRL_PIN_GROUP("gpio27", en7581_gpio27),
++	PINCTRL_PIN_GROUP("gpio28", en7581_gpio28),
++	PINCTRL_PIN_GROUP("gpio29", en7581_gpio29),
++	PINCTRL_PIN_GROUP("gpio30", en7581_gpio30),
++	PINCTRL_PIN_GROUP("gpio31", en7581_gpio31),
++	PINCTRL_PIN_GROUP("gpio33", en7581_gpio33),
++	PINCTRL_PIN_GROUP("gpio34", en7581_gpio34),
++	PINCTRL_PIN_GROUP("gpio35", en7581_gpio35),
++	PINCTRL_PIN_GROUP("gpio36", en7581_gpio36),
++	PINCTRL_PIN_GROUP("gpio37", en7581_gpio37),
++	PINCTRL_PIN_GROUP("gpio38", en7581_gpio38),
++	PINCTRL_PIN_GROUP("gpio39", en7581_gpio39),
++	PINCTRL_PIN_GROUP("gpio40", en7581_gpio40),
++	PINCTRL_PIN_GROUP("gpio41", en7581_gpio41),
++	PINCTRL_PIN_GROUP("gpio42", en7581_gpio42),
++	PINCTRL_PIN_GROUP("gpio43", en7581_gpio43),
++	PINCTRL_PIN_GROUP("gpio44", en7581_gpio44),
++	PINCTRL_PIN_GROUP("gpio45", en7581_gpio45),
++	PINCTRL_PIN_GROUP("gpio46", en7581_gpio46),
++	PINCTRL_PIN_GROUP("pcie_reset0", en7581_pcie_reset0),
++	PINCTRL_PIN_GROUP("pcie_reset1", en7581_pcie_reset1),
++	PINCTRL_PIN_GROUP("pcie_reset2", en7581_pcie_reset2),
  };
  
  static const char *const pon_groups[] = { "pon" };
-@@ -1957,7 +1987,7 @@ static const struct airoha_pinctrl_func_group phy4_led1_func_group[] = {
+@@ -1957,33 +1987,33 @@ static const struct airoha_pinctrl_func_group phy4_led1_func_group[] = {
  	},
  };
  
 -static const struct airoha_pinctrl_func airoha_pinctrl_funcs[] = {
+-	PINCTRL_FUNC_DESC(pon),
+-	PINCTRL_FUNC_DESC(tod_1pps),
+-	PINCTRL_FUNC_DESC(sipo),
+-	PINCTRL_FUNC_DESC(mdio),
+-	PINCTRL_FUNC_DESC(uart),
+-	PINCTRL_FUNC_DESC(i2c),
+-	PINCTRL_FUNC_DESC(jtag),
+-	PINCTRL_FUNC_DESC(pcm),
+-	PINCTRL_FUNC_DESC(spi),
+-	PINCTRL_FUNC_DESC(pcm_spi),
+-	PINCTRL_FUNC_DESC(i2s),
+-	PINCTRL_FUNC_DESC(emmc),
+-	PINCTRL_FUNC_DESC(pnand),
+-	PINCTRL_FUNC_DESC(pcie_reset),
+-	PINCTRL_FUNC_DESC(pwm),
+-	PINCTRL_FUNC_DESC(phy1_led0),
+-	PINCTRL_FUNC_DESC(phy2_led0),
+-	PINCTRL_FUNC_DESC(phy3_led0),
+-	PINCTRL_FUNC_DESC(phy4_led0),
+-	PINCTRL_FUNC_DESC(phy1_led1),
+-	PINCTRL_FUNC_DESC(phy2_led1),
+-	PINCTRL_FUNC_DESC(phy3_led1),
+-	PINCTRL_FUNC_DESC(phy4_led1),
 +static const struct airoha_pinctrl_func en7581_pinctrl_funcs[] = {
- 	PINCTRL_FUNC_DESC(pon),
- 	PINCTRL_FUNC_DESC(tod_1pps),
- 	PINCTRL_FUNC_DESC(sipo),
-@@ -1983,7 +2013,7 @@ static const struct airoha_pinctrl_func airoha_pinctrl_funcs[] = {
- 	PINCTRL_FUNC_DESC(phy4_led1),
++	PINCTRL_FUNC_DESC("pon", pon),
++	PINCTRL_FUNC_DESC("tod_1pps", tod_1pps),
++	PINCTRL_FUNC_DESC("sipo", sipo),
++	PINCTRL_FUNC_DESC("mdio", mdio),
++	PINCTRL_FUNC_DESC("uart", uart),
++	PINCTRL_FUNC_DESC("i2c", i2c),
++	PINCTRL_FUNC_DESC("jtag", jtag),
++	PINCTRL_FUNC_DESC("pcm", pcm),
++	PINCTRL_FUNC_DESC("spi", spi),
++	PINCTRL_FUNC_DESC("pcm_spi", pcm_spi),
++	PINCTRL_FUNC_DESC("i2s", i2s),
++	PINCTRL_FUNC_DESC("emmc", emmc),
++	PINCTRL_FUNC_DESC("pnand", pnand),
++	PINCTRL_FUNC_DESC("pcie_reset", pcie_reset),
++	PINCTRL_FUNC_DESC("pwm", pwm),
++	PINCTRL_FUNC_DESC("phy1_led0", phy1_led0),
++	PINCTRL_FUNC_DESC("phy2_led0", phy2_led0),
++	PINCTRL_FUNC_DESC("phy3_led0", phy3_led0),
++	PINCTRL_FUNC_DESC("phy4_led0", phy4_led0),
++	PINCTRL_FUNC_DESC("phy1_led1", phy1_led1),
++	PINCTRL_FUNC_DESC("phy2_led1", phy2_led1),
++	PINCTRL_FUNC_DESC("phy3_led1", phy3_led1),
++	PINCTRL_FUNC_DESC("phy4_led1", phy4_led1),
  };
  
 -static const struct airoha_pinctrl_conf airoha_pinctrl_pullup_conf[] = {
@@ -618,7 +680,7 @@ index 8ef7f88477aa..e00a90067462 100644
  	pinctrl = devm_kzalloc(dev, sizeof(*pinctrl), GFP_KERNEL);
  	if (!pinctrl)
  		return -ENOMEM;
-@@ -2883,18 +2908,27 @@ static int airoha_pinctrl_probe(struct platform_device *pdev)
+@@ -2883,14 +2908,23 @@ static int airoha_pinctrl_probe(struct platform_device *pdev)
  
  	pinctrl->chip_scu = map;
  
@@ -645,12 +707,7 @@ index 8ef7f88477aa..e00a90067462 100644
  
  		err = pinctrl_generic_add_group(pinctrl->ctrl, grp->name,
  						(int *)grp->pins, grp->npins,
--						(void *)grp);
-+						NULL);
- 		if (err < 0) {
- 			dev_err(&pdev->dev, "Failed to register group %s\n",
- 				grp->name);
-@@ -2903,15 +2937,15 @@ static int airoha_pinctrl_probe(struct platform_device *pdev)
+@@ -2903,10 +2937,10 @@ static int airoha_pinctrl_probe(struct platform_device *pdev)
  	}
  
  	/* build functions */
@@ -663,12 +720,6 @@ index 8ef7f88477aa..e00a90067462 100644
  		err = pinmux_generic_add_function(pinctrl->ctrl,
  						  func->desc.name,
  						  func->desc.group_names,
- 						  func->desc.num_group_names,
--						  (void *)func);
-+						  NULL);
- 		if (err < 0) {
- 			dev_err(dev, "Failed to register function %s\n",
- 				func->desc.func.name);
 @@ -2919,6 +2953,10 @@ static int airoha_pinctrl_probe(struct platform_device *pdev)
  		}
  	}
