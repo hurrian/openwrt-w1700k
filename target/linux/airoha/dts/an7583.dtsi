@@ -368,18 +368,20 @@
 				#reset-cells = <1>;
 			};
 
-			mdio_0: mdio-0 {
+			mdio {
 				compatible = "airoha,an7583-mdio";
-				resets = <&scuclk AN7583_MDIO0>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 
-				airoha,bus-id = <0>;
-			};
+				mdio_0: bus@0 {
+					reg = <0>;
+					resets = <&scuclk AN7583_MDIO0>;
+				};
 
-			mdio_1: mdio-1 {
-				compatible = "airoha,an7583-mdio";
-				resets = <&scuclk AN7583_MDIO1>;
-
-				airoha,bus-id = <1>;
+				mdio_1: bus@1 {
+					reg = <1>;
+					resets = <&scuclk AN7583_MDIO1>;
+				};
 			};
 		};
 
