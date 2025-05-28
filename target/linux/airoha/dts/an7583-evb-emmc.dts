@@ -38,42 +38,6 @@
 			gpios = <&an7583_pinctrl 0 GPIO_ACTIVE_LOW>;
 		};
 	};
-
-	leds {
-		compatible = "gpio-leds";
-
-		led-0 {
-			label = "power";
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_POWER;
-			gpios = <&an7583_pinctrl 27 GPIO_ACTIVE_LOW>;
-			default-state = "on";
-		};
-
-		led-2 {
-			label = "internet";
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_STATUS;
-			gpios = <&an7583_pinctrl 29 GPIO_ACTIVE_LOW>;
-			default-state = "on";
-		};
-
-		led-3 {
-			label = "wps";
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_STATUS;
-			gpios = <&an7583_pinctrl 16 GPIO_ACTIVE_LOW>;
-			default-state = "on";
-		};
-
-		led-5 {
-			label = "voip_hook";
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_STATUS;
-			gpios = <&an7583_pinctrl 30 GPIO_ACTIVE_LOW>;
-			default-state = "on";
-		};
-	};
 };
 
 &an7583_pinctrl {
@@ -83,11 +47,6 @@
 		mux {
 			function = "mdio";
 			groups = "mdio";
-		};
-
-		conf {
-			pins = "gpio2";
-			output-high;
 		};
 	};
 
@@ -108,28 +67,28 @@
 	gswp1_led0_pins: gswp1-led0-pins {
 		mux {
 			function = "phy1_led0";
-			pins = "gpio33";
+			pins = "gpio1";
 		};
 	};
 
 	gswp2_led0_pins: gswp2-led0-pins {
 		mux {
 			function = "phy2_led0";
-			pins = "gpio34";
+			pins = "gpio2";
 		};
 	};
 
 	gswp3_led0_pins: gswp3-led0-pins {
 		mux {
 			function = "phy3_led0";
-			pins = "gpio35";
+			pins = "gpio3";
 		};
 	};
 
 	gswp4_led0_pins: gswp4-led0-pins {
 		mux {
 			function = "phy4_led0";
-			pins = "gpio42";
+			pins = "gpio4";
 		};
 	};
 
@@ -251,6 +210,7 @@
 
 &gsw_phy1_led0 {
 	status = "okay";
+	active-low;
 };
 
 &gsw_phy2 {
@@ -261,6 +221,7 @@
 
 &gsw_phy2_led0 {
 	status = "okay";
+	active-low;
 };
 
 &gsw_phy3 {
@@ -271,6 +232,7 @@
 
 &gsw_phy3_led0 {
 	status = "okay";
+	active-low;
 };
 
 &gsw_phy4 {
@@ -281,4 +243,5 @@
 
 &gsw_phy4_led0 {
 	status = "okay";
+	active-low;
 };
