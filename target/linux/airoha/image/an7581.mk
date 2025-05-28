@@ -4,6 +4,12 @@ define Build/an7581-bl2-bl31-uboot
   dd if=$(STAGING_DIR_IMAGE)/an7581_$1-bl31-uboot.img of=$@ bs=1 seek=$$((0x20000)) conv=notrunc
 endef
 
+define Build/an7581-emmc-bl2-bl31-uboot
+  head -c $$((0x800)) /dev/zero > $@
+  cat $(STAGING_DIR_IMAGE)/an7581_$1-bl2.fip >> $@
+  dd if=$(STAGING_DIR_IMAGE)/an7581_$1-bl31-u-boot.fip of=$@ bs=1 seek=$$((0x20000)) conv=notrunc
+endef
+
 define Build/an7581-preloader
   cat $(STAGING_DIR_IMAGE)/an7581_$1-bl2.fip >> $@
 endef
@@ -70,6 +76,7 @@ define Device/airoha_an7581-evb-emmc-an8831
   DEVICE_PACKAGES := kmod-i2c-an7581
   ARTIFACT/preloader.bin := an7581-preloader rfb
   ARTIFACT/bl31-uboot.fip := an7581-bl31-uboot rfb
+  ARTIFACT/bl2-bl31-uboot.bin := an7581-emmc-bl2-bl31-uboot rfb
   ARTIFACTS := preloader.bin bl31-uboot.fip
 endef
 TARGET_DEVICES += airoha_an7581-evb-emmc-an8831
