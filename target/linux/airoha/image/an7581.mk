@@ -64,7 +64,8 @@ define Device/airoha_an7581-evb-emmc
   DEVICE_PACKAGES := kmod-i2c-an7581
   ARTIFACT/preloader.bin := an7581-preloader rfb
   ARTIFACT/bl31-uboot.fip := an7581-bl31-uboot rfb
-  ARTIFACTS := preloader.bin bl31-uboot.fip
+  ARTIFACT/bl2-bl31-uboot.bin := an7581-emmc-bl2-bl31-uboot rfb
+  ARTIFACTS := bl2-bl31-uboot.bin preloader.bin bl31-uboot.fip
 endef
 TARGET_DEVICES += airoha_an7581-evb-emmc
 
@@ -77,7 +78,7 @@ define Device/airoha_an7581-evb-emmc-an8831
   ARTIFACT/preloader.bin := an7581-preloader rfb
   ARTIFACT/bl31-uboot.fip := an7581-bl31-uboot rfb
   ARTIFACT/bl2-bl31-uboot.bin := an7581-emmc-bl2-bl31-uboot rfb
-  ARTIFACTS := preloader.bin bl31-uboot.fip
+  ARTIFACTS := bl2-bl31-uboot.bin preloader.bin bl31-uboot.fip
 endef
 TARGET_DEVICES += airoha_an7581-evb-emmc-an8831
 

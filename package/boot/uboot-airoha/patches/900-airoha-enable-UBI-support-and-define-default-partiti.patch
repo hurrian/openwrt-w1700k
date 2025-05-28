@@ -1,4 +1,4 @@
-From f04710bc59ed3f39c56dee0d8c3c97c51a611e4d Mon Sep 17 00:00:00 2001
+From 28a72d957b897e7f7212c11f99052a32b0f6abc4 Mon Sep 17 00:00:00 2001
 From: Christian Marangi <ansuelsmth@gmail.com>
 Date: Wed, 28 May 2025 03:10:53 +0200
 Subject: [PATCH 1/2] airoha: enable UBI support and define default partition
@@ -6,10 +6,10 @@ Subject: [PATCH 1/2] airoha: enable UBI support and define default partition
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 ---
  arch/arm/dts/an7581-u-boot.dtsi | 16 ++++++++++++++++
- arch/arm/dts/an7583-evb.dts     | 18 ++++++++++++++++++
+ arch/arm/dts/an7583-evb.dts     | 22 ++++++++++++++++++++++
  configs/an7581_evb_defconfig    | 16 ++++++++++++++++
  configs/an7583_evb_defconfig    | 16 ++++++++++++++++
- 4 files changed, 66 insertions(+)
+ 4 files changed, 70 insertions(+)
 
 diff --git a/arch/arm/dts/an7581-u-boot.dtsi b/arch/arm/dts/an7581-u-boot.dtsi
 index a9297ca6503..1960b8ca300 100644
@@ -39,13 +39,17 @@ index a9297ca6503..1960b8ca300 100644
  		};
  
 diff --git a/arch/arm/dts/an7583-evb.dts b/arch/arm/dts/an7583-evb.dts
-index d02cd194e8a..6056f982619 100644
+index d02cd194e8a..096dd395c90 100644
 --- a/arch/arm/dts/an7583-evb.dts
 +++ b/arch/arm/dts/an7583-evb.dts
-@@ -46,6 +46,24 @@
+@@ -46,6 +46,28 @@
  	};
  };
  
++&snfi {
++	status = "okay";
++};
++
 +&spi_nand {
 +	partitions {
 +		compatible = "fixed-partitions";
