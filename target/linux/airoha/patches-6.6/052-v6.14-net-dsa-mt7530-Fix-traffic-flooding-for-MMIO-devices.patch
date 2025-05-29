@@ -1,8 +1,7 @@
-From e4b4948fbde7202d756738230f30c0eb3076b4fb Mon Sep 17 00:00:00 2001
-Message-ID: <e4b4948fbde7202d756738230f30c0eb3076b4fb.1741076806.git.lorenzo@kernel.org>
+From ccc2f5a436fbb0ae1fb598932a9b8e48423c1959 Mon Sep 17 00:00:00 2001
 From: Lorenzo Bianconi <lorenzo@kernel.org>
-Date: Tue, 4 Mar 2025 09:14:09 +0100
-Subject: [PATCH net] net: dsa: mt7530: Fix traffic flooding for MMIO devices
+Date: Tue, 4 Mar 2025 09:50:23 +0100
+Subject: [PATCH] net: dsa: mt7530: Fix traffic flooding for MMIO devices
 
 On MMIO devices (e.g. MT7988 or EN7581) unicast traffic received on lanX
 port is flooded on all other user ports if the DSA switch is configured
@@ -12,6 +11,9 @@ defining default VLAN-ID 0 for MT7530 MMIO devices.
 
 Fixes: 110c18bfed414 ("net: dsa: mt7530: introduce driver for MT7988 built-in switch")
 Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
+Reviewed-by: Chester A. Unal <chester.a.unal@arinc9.com>
+Link: https://patch.msgid.link/20250304-mt7988-flooding-fix-v1-1-905523ae83e9@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
 ---
  drivers/net/dsa/mt7530.c | 8 ++------
  1 file changed, 2 insertions(+), 6 deletions(-)
@@ -20,7 +22,7 @@ diff --git a/drivers/net/dsa/mt7530.c b/drivers/net/dsa/mt7530.c
 index 1c83af805209..5883eb93efb1 100644
 --- a/drivers/net/dsa/mt7530.c
 +++ b/drivers/net/dsa/mt7530.c
-@@ -2591,8 +2591,9 @@ mt7531_setup_common(struct dsa_switch *ds)
+@@ -2591,7 +2591,8 @@ mt7531_setup_common(struct dsa_switch *ds)
  	if (ret < 0)
  		return ret;
  
@@ -30,7 +32,6 @@ index 1c83af805209..5883eb93efb1 100644
  }
  
  static int
- mt7531_setup(struct dsa_switch *ds)
 @@ -2687,11 +2688,6 @@ mt7531_setup(struct dsa_switch *ds)
  	if (ret)
  		return ret;
