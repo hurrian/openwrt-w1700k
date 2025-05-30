@@ -1,0 +1,58 @@
+From 4c46ea31f9c86930cf44489f5d415311779d7a51 Mon Sep 17 00:00:00 2001
+From: Christian Marangi <ansuelsmth@gmail.com>
+Date: Fri, 30 May 2025 11:20:25 +0200
+Subject: [PATCH] net: phy: as21xxx: setup PTP clock for harcoded address
+
+Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+---
+ drivers/net/phy/as21xxx.c | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/as21xxx.c b/drivers/net/phy/as21xxx.c
+index 92697f43087d..d4d855647b6d 100644
+--- a/drivers/net/phy/as21xxx.c
++++ b/drivers/net/phy/as21xxx.c
+@@ -876,6 +876,11 @@ static int as21xxx_led_polarity_set(struct phy_device *phydev, int index,
+ 			      mask, val);
+ }
+ 
++static void as21xxx_mdio_patch(struct phy_device *phydev)
++{
++	mdiobus_c45_write(phydev->mdio.bus, 0x30, 0x1, 0x1, 1);
++}
++
+ static int as21xxx_match_phy_device(struct phy_device *phydev,
+ 				    const struct phy_driver *phydrv)
+ {
+@@ -884,9 +889,17 @@ static int as21xxx_match_phy_device(struct phy_device *phydev,
+ 	u32 phy_id;
+ 	int ret;
+ 
++	if (phydev->mdio.addr == 0x1c ||
++	    phydev->mdio.addr == 0x1c) {
++		phy_write_mmd(phydev, MDIO_MMD_VEND1, VEND1_PTP_CLK,
++			      0x48);
++		as21xxx_mdio_patch(phydev);
++	}
++
++
+ 	/* Skip PHY that are not AS21xxx or already have firmware loaded */
+-	if (phydev->c45_ids.device_ids[MDIO_MMD_PCS] != PHY_ID_AS21XXX)
+-		return genphy_match_phy_device(phydev, (struct phy_driver *)phydrv);
++	// if (phydev->c45_ids.device_ids[MDIO_MMD_PCS] != PHY_ID_AS21XXX)
++		// return genphy_match_phy_device(phydev, (struct phy_driver *)phydrv);
+ 
+ 	/* Read PHY ID to handle firmware just loaded */
+ 	ret = phy_read_mmd(phydev, MDIO_MMD_PCS, MII_PHYSID1);
+@@ -903,7 +916,7 @@ static int as21xxx_match_phy_device(struct phy_device *phydev,
+ 	 * the firmware just loaded
+ 	 */
+ 	if (phy_id != PHY_ID_AS21XXX)
+-		return phy_id == phydrv->phy_id;
++		return genphy_match_phy_device(phydev, (struct phy_driver *)phydrv);
+ 
+ 	/* Allocate temp priv and load the firmware */
+ 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+-- 
+2.48.1
+
