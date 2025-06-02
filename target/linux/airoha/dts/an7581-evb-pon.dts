@@ -78,6 +78,10 @@
 			default-state = "on";
 		};
 	};
+
+	sfp2: sfp2 {
+		compatible = "sff,sfp";
+	};
 };
 
 &en7581_pinctrl {
@@ -237,6 +241,15 @@
 };
 
 &gdm2 {
+	status = "okay";
+
+	sfp = <&sfp2>;
+
+	managed = "in-band-status";
+	phy-mode = "usxgmii";
+};
+
+&gdm4 {
 	status = "okay";
 
 	sfp = <&sfp1>;
