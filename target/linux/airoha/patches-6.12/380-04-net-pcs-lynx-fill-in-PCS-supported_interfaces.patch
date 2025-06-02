@@ -1,0 +1,89 @@
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+To: Andrew Lunn <andrew@lunn.ch>,
+	Heiner Kallweit <hkallweit1@gmail.com>
+Cc: Alexander Couzens <lynxis@fe80.eu>,
+	Alexandre Torgue <alexandre.torgue@foss.st.com>,
+	Andrew Lunn <andrew+netdev@lunn.ch>,
+	AngeloGioacchino Del Regno <angelogioacchino.delregno@collabora.com>,
+	Daniel Golle <daniel@makrotopia.org>,
+	"David S. Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>,
+	Ioana Ciornei <ioana.ciornei@nxp.com>,
+	Jakub Kicinski <kuba@kernel.org>,
+	Jose Abreu <joabreu@synopsys.com>,
+	Jose Abreu <Jose.Abreu@synopsys.com>,
+	linux-arm-kernel@lists.infradead.org,
+	linux-mediatek@lists.infradead.org,
+	linux-stm32@st-md-mailman.stormreply.com,
+	Matthias Brugger <matthias.bgg@gmail.com>,
+	Maxime Chevallier <maxime.chevallier@bootlin.com>,
+	Maxime Coquelin <mcoquelin.stm32@gmail.com>,
+	netdev@vger.kernel.org,
+	Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH net-next 4/6] net: pcs: lynx: fill in PCS supported_interfaces
+MIME-Version: 1.0
+Content-Disposition: inline
+Message-Id: <E1tTffa-007RoV-Bo@rmk-PC.armlinux.org.uk>
+Date: Fri, 03 Jan 2025 11:16:46 +0000
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.8.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20250103_031703_442270_7033F528 
+X-CRM114-Status: GOOD (  10.80  )
+X-BeenThere: linux-arm-kernel@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: <linux-arm-kernel.lists.infradead.org>
+List-Unsubscribe: 
+ <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: 
+ <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: 
+ linux-arm-kernel-bounces+linux-arm-kernel=archiver.kernel.org@lists.infradead.org
+
+Fill in the new PCS supported_interfaces member with the interfaces
+that Lynx supports.
+
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+---
+ drivers/net/pcs/pcs-lynx.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/net/pcs/pcs-lynx.c b/drivers/net/pcs/pcs-lynx.c
+index 767a8c0714ac..6457190ec6e7 100644
+--- a/drivers/net/pcs/pcs-lynx.c
++++ b/drivers/net/pcs/pcs-lynx.c
+@@ -334,9 +334,19 @@ static const struct phylink_pcs_ops lynx_pcs_phylink_ops = {
+ 	.pcs_link_up = lynx_pcs_link_up,
+ };
+ 
++static const phy_interface_t lynx_interfaces[] = {
++	PHY_INTERFACE_MODE_SGMII,
++	PHY_INTERFACE_MODE_QSGMII,
++	PHY_INTERFACE_MODE_1000BASEX,
++	PHY_INTERFACE_MODE_2500BASEX,
++	PHY_INTERFACE_MODE_10GBASER,
++	PHY_INTERFACE_MODE_USXGMII,
++};
++
+ static struct phylink_pcs *lynx_pcs_create(struct mdio_device *mdio)
+ {
+ 	struct lynx_pcs *lynx;
++	int i;
+ 
+ 	lynx = kzalloc(sizeof(*lynx), GFP_KERNEL);
+ 	if (!lynx)
+@@ -348,6 +358,9 @@ static struct phylink_pcs *lynx_pcs_create(struct mdio_device *mdio)
+ 	lynx->pcs.neg_mode = true;
+ 	lynx->pcs.poll = true;
+ 
++	for (i = 0; i < ARRAY_SIZE(lynx_interfaces); i++)
++		__set_bit(lynx_interfaces[i], lynx->pcs.supported_interfaces);
++
+ 	return lynx_to_phylink_pcs(lynx);
+ }

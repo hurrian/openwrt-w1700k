@@ -1,0 +1,112 @@
+From 4823ed0609194e164bcacac04a610dd86717689f Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:01 +0100
+Subject: [PATCH] net: phy: phy_caps: Move __set_linkmode_max_speed to phy_caps
+
+Convert the __set_linkmode_max_speed to use the link_capabilities array.
+This makes it easy to clamp the linkmodes to a given max speed.
+Introduce a new helper phy_caps_linkmode_max_speed to replace the
+previous one that used phy_settings.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-5-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-caps.h |  2 ++
+ drivers/net/phy/phy-core.c | 18 +++---------------
+ drivers/net/phy/phy_caps.c | 19 +++++++++++++++++++
+ 3 files changed, 24 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/net/phy/phy-caps.h b/drivers/net/phy/phy-caps.h
+index 5a5f4ee3006b87..1bef9cca62c563 100644
+--- a/drivers/net/phy/phy-caps.h
++++ b/drivers/net/phy/phy-caps.h
+@@ -42,5 +42,7 @@ int phy_caps_init(void);
+ 
+ size_t phy_caps_speeds(unsigned int *speeds, size_t size,
+ 		       unsigned long *linkmodes);
++void phy_caps_linkmode_max_speed(u32 max_speed, unsigned long *linkmodes);
++
+ 
+ #endif /* __PHY_CAPS_H */
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index 102834b11de0e5..741350d7d29cfc 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -6,6 +6,8 @@
+ #include <linux/phy.h>
+ #include <linux/of.h>
+ 
++#include "phy-caps.h"
++
+ /**
+  * phy_speed_to_str - Return a string representing the PHY link speed
+  *
+
+@@ -340,22 +341,9 @@ phy_lookup_setting(int speed, int duplex, const unsigned long *mask, bool exact)
+ }
+ EXPORT_SYMBOL_GPL(phy_lookup_setting);
+ 
+-static void __set_linkmode_max_speed(u32 max_speed, unsigned long *addr)
+-{
+-	const struct phy_setting *p;
+-	int i;
+-
+-	for (i = 0, p = settings; i < ARRAY_SIZE(settings); i++, p++) {
+-		if (p->speed > max_speed)
+-			linkmode_clear_bit(p->bit, addr);
+-		else
+-			break;
+-	}
+-}
+-
+ static void __set_phy_supported(struct phy_device *phydev, u32 max_speed)
+ {
+-	__set_linkmode_max_speed(max_speed, phydev->supported);
++	phy_caps_linkmode_max_speed(max_speed, phydev->supported);
+ }
+ 
+ /**
+@@ -558,7 +546,7 @@ int phy_speed_down_core(struct phy_device *phydev)
+ 	if (min_common_speed == SPEED_UNKNOWN)
+ 		return -EINVAL;
+ 
+-	__set_linkmode_max_speed(min_common_speed, phydev->advertising);
++	phy_caps_linkmode_max_speed(min_common_speed, phydev->advertising);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index 8ce91257160fc0..d43493884ff790 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -60,6 +60,9 @@ static int speed_duplex_to_capa(int speed, unsigned int duplex)
+ #define for_each_link_caps_asc_speed(cap) \
+ 	for (cap = link_caps; cap < &link_caps[__LINK_CAPA_MAX]; cap++)
+ 
++#define for_each_link_caps_desc_speed(cap) \
++	for (cap = &link_caps[__LINK_CAPA_MAX - 1]; cap >= link_caps; cap--)
++
+ /**
+  * phy_caps_init() - Initializes the link_caps array from the link_mode_params.
+  *
+@@ -121,3 +124,19 @@ size_t phy_caps_speeds(unsigned int *speeds, size_t size,
+ 
+ 	return count;
+ }
++
++/**
++ * phy_caps_linkmode_max_speed() - Clamp a linkmodes set to a max speed
++ * @max_speed: Speed limit for the linkmode set
++ * @linkmodes: Linkmodes to limit
++ */
++void phy_caps_linkmode_max_speed(u32 max_speed, unsigned long *linkmodes)
++{
++	struct link_capabilities *lcap;
++
++	for_each_link_caps_desc_speed(lcap)
++		if (lcap->speed > max_speed)
++			linkmode_andnot(linkmodes, linkmodes, lcap->linkmodes);
++		else
++			break;
++}

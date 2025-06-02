@@ -1,0 +1,11 @@
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -228,7 +228,7 @@
+ 				  unsigned int *speeds,
+ 				  unsigned int size)
+ {
+-	return phy_speeds(speeds, size, phy->supported);
++	return phy_caps_speeds(speeds, size, phy->supported);
+ }
+ 
+ /**

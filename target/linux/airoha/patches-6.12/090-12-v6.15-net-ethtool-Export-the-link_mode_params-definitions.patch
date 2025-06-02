@@ -1,0 +1,77 @@
+From 79f88a584e35133359c394506b351a60230cf37b Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:35:58 +0100
+Subject: [PATCH] net: ethtool: Export the link_mode_params definitions
+
+link_mode_params contains a lookup table of all 802.3 link modes that
+are currently supported with structured data about each mode's speed,
+duplex, number of lanes and mediums.
+
+As a preparation for a port representation, export that table for the
+rest of the net stack to use.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-2-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ include/linux/ethtool.h | 8 ++++++++
+ net/ethtool/common.c    | 1 +
+ net/ethtool/common.h    | 7 -------
+ 3 files changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/include/linux/ethtool.h b/include/linux/ethtool.h
+index 7f222dccc7d1da..8210ece94fa6b6 100644
+--- a/include/linux/ethtool.h
++++ b/include/linux/ethtool.h
+@@ -210,6 +210,14 @@ static inline u8 *ethtool_rxfh_context_key(struct ethtool_rxfh_context *ctx)
+ 
+ void ethtool_rxfh_context_lost(struct net_device *dev, u32 context_id);
+ 
++struct link_mode_info {
++	int                             speed;
++	u8                              lanes;
++	u8                              duplex;
++};
++
++extern const struct link_mode_info link_mode_params[];
++
+ /* declare a link mode bitmap */
+ #define __ETHTOOL_DECLARE_LINK_MODE_MASK(name)		\
+ 	DECLARE_BITMAP(name, __ETHTOOL_LINK_MODE_MASK_NBITS)
+diff --git a/net/ethtool/common.c b/net/ethtool/common.c
+index 1c6f2a2f187147..7e3c16856c1a8f 100644
+--- a/net/ethtool/common.c
++++ b/net/ethtool/common.c
+@@ -424,6 +424,7 @@ const struct link_mode_info link_mode_params[] = {
+ 	__DEFINE_LINK_MODE_PARAMS(800000, VR4, Full),
+ };
+ static_assert(ARRAY_SIZE(link_mode_params) == __ETHTOOL_LINK_MODE_MASK_NBITS);
++EXPORT_SYMBOL_GPL(link_mode_params);
+ 
+ const char netif_msg_class_names[][ETH_GSTRING_LEN] = {
+ 	[NETIF_MSG_DRV_BIT]		= "drv",
+diff --git a/net/ethtool/common.h b/net/ethtool/common.h
+index a1088c2441d0a5..b4683d286a5a51 100644
+--- a/net/ethtool/common.h
++++ b/net/ethtool/common.h
+@@ -15,12 +15,6 @@
+ #define __SOF_TIMESTAMPING_CNT (const_ilog2(SOF_TIMESTAMPING_LAST) + 1)
+ #define __HWTSTAMP_FLAG_CNT (const_ilog2(HWTSTAMP_FLAG_LAST) + 1)
+ 
+-struct link_mode_info {
+-	int				speed;
+-	u8				lanes;
+-	u8				duplex;
+-};
+-
+ struct genl_info;
+ struct hwtstamp_provider_desc;
+ 
+@@ -33,7 +27,6 @@ tunable_strings[__ETHTOOL_TUNABLE_COUNT][ETH_GSTRING_LEN];
+ extern const char
+ phy_tunable_strings[__ETHTOOL_PHY_TUNABLE_COUNT][ETH_GSTRING_LEN];
+ extern const char link_mode_names[][ETH_GSTRING_LEN];
+-extern const struct link_mode_info link_mode_params[];
+ extern const char netif_msg_class_names[][ETH_GSTRING_LEN];
+ extern const char wol_mode_names[][ETH_GSTRING_LEN];
+ extern const char sof_timestamping_names[][ETH_GSTRING_LEN];

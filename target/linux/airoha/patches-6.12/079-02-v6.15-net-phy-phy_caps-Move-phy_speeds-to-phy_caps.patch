@@ -1,0 +1,143 @@
+From 8c8c4a87933dd924f9fb56dfd35bae7e8f30a4b5 Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:00 +0100
+Subject: [PATCH] net: phy: phy_caps: Move phy_speeds to phy_caps
+
+Use the newly introduced link_capabilities array to derive the list of
+possible speeds when given a combination of linkmodes. As
+link_capabilities is indexed by speed, we don't have to iterate the
+whole phy_settings array.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-4-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-caps.h |  3 +++
+ drivers/net/phy/phy-core.c | 15 ---------------
+ drivers/net/phy/phy.c      |  3 ++-
+ drivers/net/phy/phy_caps.c | 33 +++++++++++++++++++++++++++++++++
+ include/linux/phy.h        |  2 --
+ 5 files changed, 38 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/net/phy/phy-caps.h b/drivers/net/phy/phy-caps.h
+index 6024f1d11a93c3..5a5f4ee3006b87 100644
+--- a/drivers/net/phy/phy-caps.h
++++ b/drivers/net/phy/phy-caps.h
+@@ -40,4 +40,7 @@ struct link_capabilities {
+ 
+ int phy_caps_init(void);
+ 
++size_t phy_caps_speeds(unsigned int *speeds, size_t size,
++		       unsigned long *linkmodes);
++
+ #endif /* __PHY_CAPS_H */
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index 31ed1ce3b62f15..102834b11de0e5 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -340,21 +340,6 @@ phy_lookup_setting(int speed, int duplex, const unsigned long *mask, bool exact)
+ }
+ EXPORT_SYMBOL_GPL(phy_lookup_setting);
+ 
+-size_t phy_speeds(unsigned int *speeds, size_t size,
+-		  unsigned long *mask)
+-{
+-	size_t count;
+-	int i;
+-
+-	for (i = 0, count = 0; i < ARRAY_SIZE(settings) && count < size; i++)
+-		if (settings[i].bit < __ETHTOOL_LINK_MODE_MASK_NBITS &&
+-		    test_bit(settings[i].bit, mask) &&
+-		    (count == 0 || speeds[count - 1] != settings[i].speed))
+-			speeds[count++] = settings[i].speed;
+-
+-	return count;
+-}
+-
+ static void __set_linkmode_max_speed(u32 max_speed, unsigned long *addr)
+ {
+ 	const struct phy_setting *p;
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 16ffc00b419ca5..3128df03feda3e 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -36,6 +36,8 @@
+ #include <net/genetlink.h>
+ #include <net/sock.h>
+ 
++#include "phy-caps.h"
++
+ #define PHY_STATE_TIME	HZ
+ 
+ #define PHY_STATE_STR(_state)			\
+
+@@ -245,7 +246,7 @@ unsigned int phy_supported_speeds(struct phy_device *phy,
+ 				  unsigned int *speeds,
+ 				  unsigned int size)
+ {
+-	return phy_speeds(speeds, size, phy->supported);
++	return phy_caps_speeds(speeds, size, phy->supported);
+ }
+ 
+ /**
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index 6cb18e216d97a3..8ce91257160fc0 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -57,6 +57,9 @@ static int speed_duplex_to_capa(int speed, unsigned int duplex)
+ 	return -EINVAL;
+ }
+ 
++#define for_each_link_caps_asc_speed(cap) \
++	for (cap = link_caps; cap < &link_caps[__LINK_CAPA_MAX]; cap++)
++
+ /**
+  * phy_caps_init() - Initializes the link_caps array from the link_mode_params.
+  *
+@@ -88,3 +91,33 @@ int phy_caps_init(void)
+ 
+ 	return 0;
+ }
++
++/**
++ * phy_caps_speeds() - Fill an array of supported SPEED_* values for given modes
++ * @speeds: Output array to store the speeds list into
++ * @size: Size of the output array
++ * @linkmodes: Linkmodes to get the speeds from
++ *
++ * Fills the speeds array with all possible speeds that can be achieved with
++ * the specified linkmodes.
++ *
++ * Returns: The number of speeds filled into the array. If the input array isn't
++ *	    big enough to store all speeds, fill it as much as possible.
++ */
++size_t phy_caps_speeds(unsigned int *speeds, size_t size,
++		       unsigned long *linkmodes)
++{
++	struct link_capabilities *lcap;
++	size_t count = 0;
++
++	for_each_link_caps_asc_speed(lcap) {
++		if (linkmode_intersects(lcap->linkmodes, linkmodes) &&
++		    (count == 0 || speeds[count - 1] != lcap->speed)) {
++			speeds[count++] = lcap->speed;
++			if (count >= size)
++				break;
++		}
++	}
++
++	return count;
++}
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 61a8cb9d124777..83c50bb2193919 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1292,8 +1292,6 @@
+ const struct phy_setting *
+ phy_lookup_setting(int speed, int duplex, const unsigned long *mask,
+ 		   bool exact);
+-size_t phy_speeds(unsigned int *speeds, size_t size,
+-		  unsigned long *mask);
+ void of_set_phy_supported(struct phy_device *phydev);
+ void of_set_phy_eee_broken(struct phy_device *phydev);
+ int phy_speed_down_core(struct phy_device *phydev);

@@ -1,0 +1,49 @@
+From a17ceec62f81cebadcaa6f15ca656ff5cbe77a52 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 15 Jan 2025 20:42:37 +0000
+Subject: [PATCH] net: phylink: add phylink_link_is_up() helper
+
+Add a helper to determine whether the link is up or down. Currently
+this is only used in one location, but becomes necessary to test
+when reconfiguring EEE.
+
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Link: https://patch.msgid.link/E1tYADl-0014Ph-EV@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index ff0efb52189f23..918cb9a919f9a2 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -1651,20 +1651,21 @@ static void phylink_link_down(struct phylink *pl)
+ 	phylink_info(pl, "Link is Down\n");
+ }
+ 
++static bool phylink_link_is_up(struct phylink *pl)
++{
++	return pl->netdev ? netif_carrier_ok(pl->netdev) : pl->old_link_state;
++}
++
+ static void phylink_resolve(struct work_struct *w)
+ {
+ 	struct phylink *pl = container_of(w, struct phylink, resolve);
+ 	struct phylink_link_state link_state;
+-	struct net_device *ndev = pl->netdev;
+ 	bool mac_config = false;
+ 	bool retrigger = false;
+ 	bool cur_link_state;
+ 
+ 	mutex_lock(&pl->state_mutex);
+-	if (pl->netdev)
+-		cur_link_state = netif_carrier_ok(ndev);
+-	else
+-		cur_link_state = pl->old_link_state;
++	cur_link_state = phylink_link_is_up(pl);
+ 
+ 	if (pl->phylink_disable_state) {
+ 		pl->link_failed = false;

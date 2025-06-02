@@ -1,0 +1,80 @@
+From: Christian Marangi <ansuelsmth@gmail.com>
+To: Andrew Lunn <andrew+netdev@lunn.ch>,
+	"David S. Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>,
+	Jakub Kicinski <kuba@kernel.org>,
+	Paolo Abeni <pabeni@redhat.com>,
+	Rob Herring <robh@kernel.org>,
+	Krzysztof Kozlowski <krzk+dt@kernel.org>,
+	Conor Dooley <conor+dt@kernel.org>,
+	Lorenzo Bianconi <lorenzo@kernel.org>,
+	Heiner Kallweit <hkallweit1@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Philipp Zabel <p.zabel@pengutronix.de>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nick Desaulniers <nick.desaulniers+lkml@gmail.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Christian Marangi <ansuelsmth@gmail.com>,
+	Daniel Golle <daniel@makrotopia.org>,
+	netdev@vger.kernel.org,
+	devicetree@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-mediatek@lists.infradead.org,
+	llvm@lists.linux.dev
+Subject: [net-next PATCH v4 01/11] net: phy: introduce phy_interface_copy
+ helper
+Date: Sun, 11 May 2025 22:12:27 +0200
+Message-ID: <20250511201250.3789083-2-ansuelsmth@gmail.com>
+X-Mailer: git-send-email 2.48.1
+In-Reply-To: <20250511201250.3789083-1-ansuelsmth@gmail.com>
+References: <20250511201250.3789083-1-ansuelsmth@gmail.com>
+MIME-Version: 1.0
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.8.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20250511_131323_342798_AEE87635 
+X-CRM114-Status: GOOD (  11.13  )
+X-BeenThere: linux-mediatek@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: <linux-mediatek.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek@lists.infradead.org>
+List-Help: <mailto:linux-mediatek-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces@lists.infradead.org>
+Errors-To: 
+ linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org
+
+Introduce phy_interface_copy helper as a shorthand to copy the PHY
+interface bitmap to a different location.
+
+This is useful if a PHY interface bitmap needs to be stored in a
+different variable and needs to be reset to an original value saved in a
+different bitmap.
+
+Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+Reviewed-by: Sean Anderson <sean.anderson@linux.dev>
+---
+ include/linux/phy.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index d62d292024bc..9f0e5fb30d63 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -173,6 +173,11 @@ static inline void phy_interface_or(unsigned long *dst, const unsigned long *a,
+ 	bitmap_or(dst, a, b, PHY_INTERFACE_MODE_MAX);
+ }
+ 
++static inline void phy_interface_copy(unsigned long *dst, const unsigned long *src)
++{
++	bitmap_copy(dst, src, PHY_INTERFACE_MODE_MAX);
++}
++
+ static inline void phy_interface_set_rgmii(unsigned long *intf)
+ {
+ 	__set_bit(PHY_INTERFACE_MODE_RGMII, intf);

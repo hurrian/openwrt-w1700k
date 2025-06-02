@@ -1,0 +1,43 @@
+From 60a331fff5e80a1f89260e2b1701c22e2ba08daf Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 13 Jan 2025 09:22:39 +0000
+Subject: [PATCH] net: phylink: use neg_mode in
+ phylink_mii_c22_pcs_decode_state()
+
+Rather than using the state of the Autoneg bit, which is unreliable
+with the new PCS neg mode support, use the passed neg_mode to decide
+whether to decode the link partner advertisement data.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Tested-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1tXGed-000EtF-CN@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index b29b7e73b5bd01..b79f975bc16454 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3877,11 +3877,15 @@ void phylink_mii_c22_pcs_decode_state(struct phylink_link_state *state,
+ {
+ 	state->link = !!(bmsr & BMSR_LSTATUS);
+ 	state->an_complete = !!(bmsr & BMSR_ANEGCOMPLETE);
+-	/* If there is no link or autonegotiation is disabled, the LP advertisement
+-	 * data is not meaningful, so don't go any further.
++
++	/* If the link is down, the advertisement data is undefined. */
++	if (!state->link)
++		return;
++
++	/* If in-band is disabled, then the advertisement data is not
++	 * meaningful.
+ 	 */
+-	if (!state->link || !linkmode_test_bit(ETHTOOL_LINK_MODE_Autoneg_BIT,
+-					       state->advertising))
++	if (neg_mode != PHYLINK_PCS_NEG_INBAND_ENABLED)
+ 		return;
+ 
+ 	switch (state->interface) {

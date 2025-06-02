@@ -1,0 +1,33 @@
+From c3ad9d9e7da81711b30412b07b4535f3c75f28eb Mon Sep 17 00:00:00 2001
+From: Alexander Duyck <alexanderduyck@fb.com>
+Date: Wed, 19 Mar 2025 10:46:25 -0700
+Subject: [PATCH] net: phylink: Remove unused function pointer from phylink
+ structure
+
+From what I can tell the .get_fixed_state pointer in the phylink structure
+hasn't been used since commit 5c05c1dbb177 ("net: phylink, dsa: eliminate
+phylink_fixed_state_cb()") . Since I can't find any users for it we might
+as well just drop the pointer.
+
+Signed-off-by: Alexander Duyck <alexanderduyck@fb.com>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/174240634772.1745174.5690351737682751849.stgit@ahduyck-xeon-server.home.arpa
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 0f70a7f3dfccdc..16a1f31f00911e 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -72,8 +72,6 @@ struct phylink {
+ 	struct gpio_desc *link_gpio;
+ 	unsigned int link_irq;
+ 	struct timer_list link_poll;
+-	void (*get_fixed_state)(struct net_device *dev,
+-				struct phylink_link_state *s);
+ 
+ 	struct mutex state_mutex;
+ 	struct phylink_link_state phy_state;

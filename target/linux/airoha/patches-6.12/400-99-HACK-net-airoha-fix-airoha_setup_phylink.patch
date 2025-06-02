@@ -1,0 +1,28 @@
+--- a/drivers/net/ethernet/airoha/airoha_eth.c
++++ b/drivers/net/ethernet/airoha/airoha_eth.c
+@@ -2883,14 +2883,22 @@
+ 	if (err)
+ 		return err;
+ 
++	if (airhoa_is_phy_external(port)) {
++		err = airoha_setup_phylink(dev);
++		if (err)
++			return err;
++	}
++
+ 	err = register_netdev(dev);
+ 	if (err)
+-		goto free_metadata_dst;
++		goto free_phylink;
+ 
+ 	return 0;
+ 
+-free_metadata_dst:
+-	airoha_metadata_dst_free(port);
++free_phylink:
++	if (airhoa_is_phy_external(port))
++		phylink_destroy(port->phylink);
++
+ 	return err;
+ }
+ 

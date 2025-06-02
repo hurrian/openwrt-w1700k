@@ -1,0 +1,211 @@
+From fc81e257d19f5733c22732eef29fa15ee8bef221 Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:04 +0100
+Subject: [PATCH] net: phy: phy_caps: Allow looking-up link caps based on speed
+ and duplex
+
+As the link_caps array is efficient for <speed,duplex> lookups,
+implement a function for speed/duplex lookups that matches a given
+mask. This replicates to some extent the phy_lookup_settings()
+behaviour, matching full link_capabilities instead of a single linkmode.
+
+phy.c's phy_santize_settings() and phylink's
+phylink_ethtool_ksettings_set() performs such lookup using the
+phy_settings table, but are only interested in the actual speed/duplex
+that were matched, rathet than the individual linkmode.
+
+Similar to phy_lookup_settings(), the newly introduced phy_caps_lookup()
+will run through the link_caps[] array by descending speed/duplex order.
+
+If the link_capabilities for a given <speed/duplex> tuple intersects the
+passed linkmodes, we consider that a match.
+
+Similar to phy_lookup_settings(), we also allow passing an 'exact'
+boolean, allowing non-exact match. Here, we MUST always match the
+linkmodes mask, but we allow matching on lower speed settings.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-8-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-caps.h |  4 ++++
+ drivers/net/phy/phy.c      | 32 ++++++--------------------
+ drivers/net/phy/phy_caps.c | 47 ++++++++++++++++++++++++++++++++++++++
+ drivers/net/phy/phylink.c  | 17 +++++++-------
+ 4 files changed, 67 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/net/phy/phy-caps.h b/drivers/net/phy/phy-caps.h
+index 8833798f141f33..aef4b54a8429d2 100644
+--- a/drivers/net/phy/phy-caps.h
++++ b/drivers/net/phy/phy-caps.h
+@@ -51,4 +51,8 @@ phy_caps_lookup_by_linkmode(const unsigned long *linkmodes);
+ const struct link_capabilities *
+ phy_caps_lookup_by_linkmode_rev(const unsigned long *linkmodes, bool fdx_only);
+ 
++const struct link_capabilities *
++phy_caps_lookup(int speed, unsigned int duplex, const unsigned long *supported,
++		bool exact);
++
+ #endif /* __PHY_CAPS_H */
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 8df37d221fba65..562acde8922494 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -213,25 +213,6 @@ int phy_aneg_done(struct phy_device *phydev)
+ }
+ EXPORT_SYMBOL(phy_aneg_done);
+ 
+-/**
+- * phy_find_valid - find a PHY setting that matches the requested parameters
+- * @speed: desired speed
+- * @duplex: desired duplex
+- * @supported: mask of supported link modes
+- *
+- * Locate a supported phy setting that is, in priority order:
+- * - an exact match for the specified speed and duplex mode
+- * - a match for the specified speed, or slower speed
+- * - the slowest supported speed
+- * Returns the matched phy_setting entry, or %NULL if no supported phy
+- * settings were found.
+- */
+-static const struct phy_setting *
+-phy_find_valid(int speed, int duplex, unsigned long *supported)
+-{
+-	return phy_lookup_setting(speed, duplex, supported, false);
+-}
+-
+ /**
+  * phy_supported_speeds - return all speeds currently supported by a phy device
+  * @phy: The phy device to return supported speeds of.
+@@ -274,13 +255,14 @@ EXPORT_SYMBOL(phy_check_valid);
+  */
+ static void phy_sanitize_settings(struct phy_device *phydev)
+ {
+-	const struct phy_setting *setting;
++	const struct link_capabilities *c;
++
++	c = phy_caps_lookup(phydev->speed, phydev->duplex, phydev->supported,
++			    false);
+ 
+-	setting = phy_find_valid(phydev->speed, phydev->duplex,
+-				 phydev->supported);
+-	if (setting) {
+-		phydev->speed = setting->speed;
+-		phydev->duplex = setting->duplex;
++	if (c) {
++		phydev->speed = c->speed;
++		phydev->duplex = c->duplex;
+ 	} else {
+ 		/* We failed to find anything (no supported speeds?) */
+ 		phydev->speed = SPEED_UNKNOWN;
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index c39f38c12ef2a1..0366feee2912a4 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -170,6 +170,53 @@ phy_caps_lookup_by_linkmode_rev(const unsigned long *linkmodes, bool fdx_only)
+ 	return NULL;
+ }
+ 
++/**
++ * phy_caps_lookup() - Lookup capabilities by speed/duplex that matches a mask
++ * @speed: Speed to match
++ * @duplex: Duplex to match
++ * @supported: Mask of linkmodes to match
++ * @exact: Perform an exact match or not.
++ *
++ * Lookup a link_capabilities entry that intersect the supported linkmodes mask,
++ * and that matches the passed speed and duplex.
++ *
++ * When @exact is set, an exact match is performed on speed and duplex, meaning
++ * that if the linkmodes for the given speed and duplex intersect the supported
++ * mask, this capability is returned, otherwise we don't have a match and return
++ * NULL.
++ *
++ * When @exact is not set, we return either an exact match, or matching capabilities
++ * at lower speed, or the lowest matching speed, or NULL.
++ *
++ * Returns: a matched link_capabilities according to the above process, NULL
++ *	    otherwise.
++ */
++const struct link_capabilities *
++phy_caps_lookup(int speed, unsigned int duplex, const unsigned long *supported,
++		bool exact)
++{
++	const struct link_capabilities *lcap, *last = NULL;
++
++	for_each_link_caps_desc_speed(lcap) {
++		if (linkmode_intersects(lcap->linkmodes, supported)) {
++			last = lcap;
++			/* exact match on speed and duplex*/
++			if (lcap->speed == speed && lcap->duplex == duplex) {
++				return lcap;
++			} else if (!exact) {
++				if (lcap->speed <= speed)
++					return lcap;
++			}
++		}
++	}
++
++	if (!exact)
++		return last;
++
++	return NULL;
++}
++EXPORT_SYMBOL_GPL(phy_caps_lookup);
++
+ /**
+  * phy_caps_linkmode_max_speed() - Clamp a linkmodes set to a max speed
+  * @max_speed: Speed limit for the linkmode set
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 76b1a329607bb3..ad611dda193359 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -20,6 +20,7 @@
+ #include <linux/timer.h>
+ #include <linux/workqueue.h>
+ 
++#include "phy-caps.h"
+ #include "sfp.h"
+ #include "swphy.h"
+ 
+@@ -2852,8 +2853,8 @@ int phylink_ethtool_ksettings_set(struct phylink *pl,
+ 				  const struct ethtool_link_ksettings *kset)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(support);
++	const struct link_capabilities *c;
+ 	struct phylink_link_state config;
+-	const struct phy_setting *s;
+ 
+ 	ASSERT_RTNL();
+ 
+@@ -2896,23 +2897,23 @@ int phylink_ethtool_ksettings_set(struct phylink *pl,
+ 		/* Autonegotiation disabled, select a suitable speed and
+ 		 * duplex.
+ 		 */
+-		s = phy_lookup_setting(kset->base.speed, kset->base.duplex,
+-				       pl->supported, false);
+-		if (!s)
++		c = phy_caps_lookup(kset->base.speed, kset->base.duplex,
++				    pl->supported, false);
++		if (!c)
+ 			return -EINVAL;
+ 
+ 		/* If we have a fixed link, refuse to change link parameters.
+ 		 * If the link parameters match, accept them but do nothing.
+ 		 */
+ 		if (pl->req_link_an_mode == MLO_AN_FIXED) {
+-			if (s->speed != pl->link_config.speed ||
+-			    s->duplex != pl->link_config.duplex)
++			if (c->speed != pl->link_config.speed ||
++			    c->duplex != pl->link_config.duplex)
+ 				return -EINVAL;
+ 			return 0;
+ 		}
+ 
+-		config.speed = s->speed;
+-		config.duplex = s->duplex;
++		config.speed = c->speed;
++		config.duplex = c->duplex;
+ 		break;
+ 
+ 	case AUTONEG_ENABLE:

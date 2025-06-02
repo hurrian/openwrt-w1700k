@@ -1,0 +1,279 @@
+From e7f984e925d23f8fd0469e344a8dc225e1a1b0ab Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Mon, 3 Mar 2025 21:18:46 +0100
+Subject: [PATCH] net: phy: move PHY package related code from phy.h to
+ phy_package.c
+
+Move PHY package related inline functions from phy.h to phy_package.c.
+While doing so remove locked versions phy_package_read() and
+phy_package_write() which have no user.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Link: https://patch.msgid.link/a4518379-7a5d-45f3-831c-b7fde6512c65@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/bcm54140.c        |  1 +
+ drivers/net/phy/mscc/mscc_main.c  |  2 +
+ drivers/net/phy/phy-core.c        |  1 +
+ drivers/net/phy/phy_package.c     | 61 ++++++++++++++++++++++
+ drivers/net/phy/phylib-internal.h |  2 +
+ drivers/net/phy/phylib.h          |  6 +++
+ include/linux/phy.h               | 86 -------------------------------
+ 7 files changed, 73 insertions(+), 86 deletions(-)
+
+diff --git a/drivers/net/phy/bcm54140.c b/drivers/net/phy/bcm54140.c
+index 7969345f6b3550..a8edf45fd73359 100644
+--- a/drivers/net/phy/bcm54140.c
++++ b/drivers/net/phy/bcm54140.c
+@@ -10,6 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/phy.h>
+ 
++#include "phylib.h"
+ #include "bcm-phy-lib.h"
+ 
+ /* RDB per-port registers
+diff --git a/drivers/net/phy/mscc/mscc_main.c b/drivers/net/phy/mscc/mscc_main.c
+index 19cf12ee8990ff..7ff975efd8e7af 100644
+--- a/drivers/net/phy/mscc/mscc_main.c
++++ b/drivers/net/phy/mscc/mscc_main.c
+@@ -17,6 +17,8 @@
+ #include <linux/of.h>
+ #include <linux/netdevice.h>
+ #include <dt-bindings/net/mscc-phy-vsc8531.h>
++
++#include "../phylib.h"
+ #include "mscc_serdes.h"
+ #include "mscc.h"
+ 
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index b1c1670de23b0b..154d29be6293a1 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -6,6 +6,7 @@
+ #include <linux/phy.h>
+ #include <linux/of.h>
+ 
++#include "phylib.h"
+ #include "phylib-internal.h"
+ 
+ /**
+diff --git a/drivers/net/phy/phy_package.c b/drivers/net/phy/phy_package.c
+index 873420e58f0202..12c92d26ee0b9f 100644
+--- a/drivers/net/phy/phy_package.c
++++ b/drivers/net/phy/phy_package.c
+@@ -7,6 +7,7 @@
+ #include <linux/phy.h>
+ 
+ #include "phylib.h"
++#include "phylib-internal.h"
+ 
+ struct device_node *phy_package_get_node(struct phy_device *phydev)
+ {
+@@ -20,6 +21,66 @@ void *phy_package_get_priv(struct phy_device *phydev)
+ }
+ EXPORT_SYMBOL_GPL(phy_package_get_priv);
+ 
++int phy_package_address(struct phy_device *phydev, unsigned int addr_offset)
++{
++	struct phy_package_shared *shared = phydev->shared;
++	u8 base_addr = shared->base_addr;
++
++	if (addr_offset >= PHY_MAX_ADDR - base_addr)
++		return -EIO;
++
++	/* we know that addr will be in the range 0..31 and thus the
++	 * implicit cast to a signed int is not a problem.
++	 */
++	return base_addr + addr_offset;
++}
++
++int __phy_package_read(struct phy_device *phydev, unsigned int addr_offset,
++		       u32 regnum)
++{
++	int addr = phy_package_address(phydev, addr_offset);
++
++	if (addr < 0)
++		return addr;
++
++	return __mdiobus_read(phydev->mdio.bus, addr, regnum);
++}
++EXPORT_SYMBOL_GPL(__phy_package_read);
++
++int __phy_package_write(struct phy_device *phydev, unsigned int addr_offset,
++			u32 regnum, u16 val)
++{
++	int addr = phy_package_address(phydev, addr_offset);
++
++	if (addr < 0)
++		return addr;
++
++	return __mdiobus_write(phydev->mdio.bus, addr, regnum, val);
++}
++EXPORT_SYMBOL_GPL(__phy_package_write);
++
++static bool __phy_package_set_once(struct phy_device *phydev, unsigned int b)
++{
++	struct phy_package_shared *shared = phydev->shared;
++
++	if (!shared)
++		return false;
++
++	return !test_and_set_bit(b, &shared->flags);
++}
++
++bool phy_package_init_once(struct phy_device *phydev)
++{
++	return __phy_package_set_once(phydev, 0);
++}
++EXPORT_SYMBOL_GPL(phy_package_init_once);
++
++bool phy_package_probe_once(struct phy_device *phydev)
++{
++	return __phy_package_set_once(phydev, 1);
++}
++EXPORT_SYMBOL_GPL(phy_package_probe_once);
++
+ /**
+  * phy_package_join - join a common PHY group
+  * @phydev: target phy_device struct
+diff --git a/drivers/net/phy/phylib-internal.h b/drivers/net/phy/phylib-internal.h
+index dc9592c6bb8e7b..afac2bd15b5020 100644
+--- a/drivers/net/phy/phylib-internal.h
++++ b/drivers/net/phy/phylib-internal.h
+@@ -20,6 +20,8 @@ void of_set_phy_timing_role(struct phy_device *phydev);
+ int phy_speed_down_core(struct phy_device *phydev);
+ void phy_check_downshift(struct phy_device *phydev);
+ 
++int phy_package_address(struct phy_device *phydev, unsigned int addr_offset);
++
+ int genphy_c45_read_eee_adv(struct phy_device *phydev, unsigned long *adv);
+ 
+ #endif /* __PHYLIB_INTERNAL_H */
+diff --git a/drivers/net/phy/phylib.h b/drivers/net/phy/phylib.h
+index a42e1fc079cb0a..06c50d275b906c 100644
+--- a/drivers/net/phy/phylib.h
++++ b/drivers/net/phy/phylib.h
+@@ -11,5 +11,11 @@ struct phy_device;
+ 
+ struct device_node *phy_package_get_node(struct phy_device *phydev);
+ void *phy_package_get_priv(struct phy_device *phydev);
++int __phy_package_read(struct phy_device *phydev, unsigned int addr_offset,
++		       u32 regnum);
++int __phy_package_write(struct phy_device *phydev, unsigned int addr_offset,
++			u32 regnum, u16 val);
++bool phy_package_init_once(struct phy_device *phydev);
++bool phy_package_probe_once(struct phy_device *phydev);
+ 
+ #endif /* __PHYLIB_H */
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 7bfbae51070a8a..2b12d1bef3cc94 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -350,10 +350,6 @@ struct phy_package_shared {
+ 	void *priv;
+ };
+ 
+-/* used as bit number in atomic bitops */
+-#define PHY_SHARED_F_INIT_DONE  0
+-#define PHY_SHARED_F_PROBE_DONE 1
+-
+ /**
+  * struct mii_bus - Represents an MDIO bus
+  *
+@@ -2149,67 +2145,6 @@ int __phy_hwtstamp_set(struct phy_device *phydev,
+ 		       struct kernel_hwtstamp_config *config,
+ 		       struct netlink_ext_ack *extack);
+ 
+-static inline int phy_package_address(struct phy_device *phydev,
+-				      unsigned int addr_offset)
+-{
+-	struct phy_package_shared *shared = phydev->shared;
+-	u8 base_addr = shared->base_addr;
+-
+-	if (addr_offset >= PHY_MAX_ADDR - base_addr)
+-		return -EIO;
+-
+-	/* we know that addr will be in the range 0..31 and thus the
+-	 * implicit cast to a signed int is not a problem.
+-	 */
+-	return base_addr + addr_offset;
+-}
+-
+-static inline int phy_package_read(struct phy_device *phydev,
+-				   unsigned int addr_offset, u32 regnum)
+-{
+-	int addr = phy_package_address(phydev, addr_offset);
+-
+-	if (addr < 0)
+-		return addr;
+-
+-	return mdiobus_read(phydev->mdio.bus, addr, regnum);
+-}
+-
+-static inline int __phy_package_read(struct phy_device *phydev,
+-				     unsigned int addr_offset, u32 regnum)
+-{
+-	int addr = phy_package_address(phydev, addr_offset);
+-
+-	if (addr < 0)
+-		return addr;
+-
+-	return __mdiobus_read(phydev->mdio.bus, addr, regnum);
+-}
+-
+-static inline int phy_package_write(struct phy_device *phydev,
+-				    unsigned int addr_offset, u32 regnum,
+-				    u16 val)
+-{
+-	int addr = phy_package_address(phydev, addr_offset);
+-
+-	if (addr < 0)
+-		return addr;
+-
+-	return mdiobus_write(phydev->mdio.bus, addr, regnum, val);
+-}
+-
+-static inline int __phy_package_write(struct phy_device *phydev,
+-				      unsigned int addr_offset, u32 regnum,
+-				      u16 val)
+-{
+-	int addr = phy_package_address(phydev, addr_offset);
+-
+-	if (addr < 0)
+-		return addr;
+-
+-	return __mdiobus_write(phydev->mdio.bus, addr, regnum, val);
+-}
+-
+ int __phy_package_read_mmd(struct phy_device *phydev,
+ 			   unsigned int addr_offset, int devad,
+ 			   u32 regnum);
+@@ -2226,27 +2161,6 @@ int phy_package_write_mmd(struct phy_device *phydev,
+ 			  unsigned int addr_offset, int devad,
+ 			  u32 regnum, u16 val);
+ 
+-static inline bool __phy_package_set_once(struct phy_device *phydev,
+-					  unsigned int b)
+-{
+-	struct phy_package_shared *shared = phydev->shared;
+-
+-	if (!shared)
+-		return false;
+-
+-	return !test_and_set_bit(b, &shared->flags);
+-}
+-
+-static inline bool phy_package_init_once(struct phy_device *phydev)
+-{
+-	return __phy_package_set_once(phydev, PHY_SHARED_F_INIT_DONE);
+-}
+-
+-static inline bool phy_package_probe_once(struct phy_device *phydev)
+-{
+-	return __phy_package_set_once(phydev, PHY_SHARED_F_PROBE_DONE);
+-}
+-
+ extern const struct bus_type mdio_bus_type;
+ 
+ struct mdio_board_info {

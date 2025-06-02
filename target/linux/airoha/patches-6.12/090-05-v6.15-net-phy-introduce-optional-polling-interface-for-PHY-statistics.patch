@@ -1,0 +1,93 @@
+From f2bc1c2655728ac00c35cfb992bdb3243ca17e7e Mon Sep 17 00:00:00 2001
+From: Oleksij Rempel <o.rempel@pengutronix.de>
+Date: Fri, 10 Jan 2025 07:05:15 +0100
+Subject: [PATCH] net: phy: introduce optional polling interface for PHY
+ statistics
+
+Add an optional polling interface for PHY statistics to simplify driver
+implementation.
+
+Signed-off-by: Oleksij Rempel <o.rempel@pengutronix.de>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy.c | 20 ++++++++++++++++++++
+ include/linux/phy.h   | 21 +++++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 508f3ae3240f0f..c008fe0502452c 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1441,6 +1441,23 @@ static int phy_enable_interrupts(struct phy_device *phydev)
+ 	return phy_config_interrupt(phydev, PHY_INTERRUPT_ENABLED);
+ }
+ 
++/**
++ * phy_update_stats - Update PHY device statistics if supported.
++ * @phydev: Pointer to the PHY device structure.
++ *
++ * If the PHY driver provides an update_stats callback, this function
++ * invokes it to update the PHY statistics. If not, it returns 0.
++ *
++ * Return: 0 on success, or a negative error code if the callback fails.
++ */
++static int phy_update_stats(struct phy_device *phydev)
++{
++	if (!phydev->drv->update_stats)
++		return 0;
++
++	return phydev->drv->update_stats(phydev);
++}
++
+ /**
+  * phy_request_interrupt - request and enable interrupt for a PHY device
+  * @phydev: target phy_device struct
+@@ -1510,6 +1527,9 @@ static enum phy_state_work _phy_state_machine(struct phy_device *phydev)
+ 	case PHY_RUNNING:
+ 		err = phy_check_link_status(phydev);
+ 		func = &phy_check_link_status;
++
++		if (!err)
++			err = phy_update_stats(phydev);
+ 		break;
+ 	case PHY_CABLETEST:
+ 		err = phydev->drv->cable_test_get_status(phydev, &finished);
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 81d1612e7d35b2..afaae74d0949e9 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1173,6 +1173,24 @@ struct phy_driver {
+ 	 */
+ 	void (*get_link_stats)(struct phy_device *dev,
+ 			       struct ethtool_link_ext_stats *link_stats);
++
++	/**
++	 * @update_stats: Trigger periodic statistics updates.
++	 * @dev: The PHY device for which statistics updates are triggered.
++	 *
++	 * Periodically gathers statistics from the PHY device to update locally
++	 * maintained 64-bit counters. This is necessary for PHYs that implement
++	 * reduced-width counters (e.g., 16-bit or 32-bit) which can overflow
++	 * more frequently compared to 64-bit counters. By invoking this
++	 * callback, drivers can fetch the current counter values, handle
++	 * overflow detection, and accumulate the results into local 64-bit
++	 * counters for accurate reporting through the `get_phy_stats` and
++	 * `get_link_stats` interfaces.
++	 *
++	 * Return: 0 on success or a negative error code on failure.
++	 */
++	int (*update_stats)(struct phy_device *dev);
++
+ 	/** @get_sset_count: Number of statistic counters */
+ 	int (*get_sset_count)(struct phy_device *dev);
+ 	/** @get_strings: Names of the statistic counters */
+@@ -1663,6 +1681,9 @@ static inline bool phy_polling_mode(struct phy_device *phydev)
+ 		if (phydev->drv->flags & PHY_POLL_CABLE_TEST)
+ 			return true;
+ 
++	if (phydev->drv->update_stats)
++		return true;
++
+ 	return phydev->irq == PHY_POLL;
+ }
+ 

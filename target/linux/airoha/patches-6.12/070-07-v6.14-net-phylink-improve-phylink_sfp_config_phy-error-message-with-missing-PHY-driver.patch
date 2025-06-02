@@ -1,0 +1,80 @@
+From ffcbfb5f9779637792547356a4fb8b0cbf645fa9 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <vladimir.oltean@nxp.com>
+Date: Thu, 12 Dec 2024 16:08:34 +0200
+Subject: [PATCH] net: phylink: improve phylink_sfp_config_phy() error message
+ with missing PHY driver
+
+It seems that phylink does not support driving PHYs in SFP modules using
+the Generic PHY or Generic Clause 45 PHY driver. I've come to this
+conclusion after analyzing these facts:
+
+- sfp_sm_probe_phy(), who is our caller here, first calls
+  phy_device_register() and then sfp_add_phy() -> ... ->
+  phylink_sfp_connect_phy().
+
+- phydev->supported is populated by phy_probe()
+
+- phy_probe() is usually called synchronously from phy_device_register()
+  via phy_bus_match(), if a precise device driver is found for the PHY.
+  In that case, phydev->supported has a good chance of being set to a
+  non-zero mask.
+
+- There is an exceptional case for the PHYs for which phy_bus_match()
+  didn't find a driver. Those devices sit for a while without a driver,
+  then phy_attach_direct() force-binds the genphy_c45_driver or
+  genphy_driver to them. Again, this triggers phy_probe() and renders
+  a good chance of phydev->supported being populated, assuming
+  compatibility with genphy_read_abilities() or
+  genphy_c45_pma_read_abilities().
+
+- phylink_sfp_config_phy() does not support the exceptional case of
+  retrieving phydev->supported from the Generic PHY driver, due to its
+  code flow. It expects the phydev->supported mask to already be
+  non-empty, because it first calls phylink_validate() on it, and only
+  calls phylink_attach_phy() if that succeeds. Thus, phylink_attach_phy()
+  -> phy_attach_direct() has no chance of running.
+
+It is not my wish to change the state of affairs by altering the code
+flow, but merely to document the limitation rather than have the current
+unspecific error:
+
+[   61.800079] mv88e6085 d0032004.mdio-mii:12 sfp: validation with support 00,00000000,00000000,00000000 failed: -EINVAL
+[   61.820743] sfp sfp: sfp_add_phy failed: -EINVAL
+
+On the premise that an empty phydev->supported is going to make
+phylink_validate() fail anyway, and that this is caused by a missing PHY
+driver, it would be more informative to single out that case, undercut
+the entire phylink_sfp_config_phy() call, including phylink_validate(),
+and print a more specific message for this common gotcha:
+
+[   37.076403] mv88e6085 d0032004.mdio-mii:12 sfp: PHY i2c:sfp:16 (id 0x01410cc2) has no driver loaded
+[   37.089157] mv88e6085 d0032004.mdio-mii:12 sfp: Drivers which handle known common cases: CONFIG_BCM84881_PHY, CONFIG_MARVELL_PHY
+[   37.108047] sfp sfp: sfp_add_phy failed: -EINVAL
+
+Link: https://lore.kernel.org/netdev/20241113144229.3ff4bgsalvj7spb7@skbuf/
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/20241212140834.278894-1-vladimir.oltean@nxp.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 95fbc363f9a68e..6d50c2fdb190ef 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3623,6 +3623,13 @@ static int phylink_sfp_connect_phy(void *upstream, struct phy_device *phy)
+ {
+ 	struct phylink *pl = upstream;
+ 
++	if (!phy->drv) {
++		phylink_err(pl, "PHY %s (id 0x%.8lx) has no driver loaded\n",
++			    phydev_name(phy), (unsigned long)phy->phy_id);
++		phylink_err(pl, "Drivers which handle known common cases: CONFIG_BCM84881_PHY, CONFIG_MARVELL_PHY\n");
++		return -EINVAL;
++	}
++
+ 	/*
+ 	 * This is the new way of dealing with flow control for PHYs,
+ 	 * as described by Timur Tabi in commit 529ed1275263 ("net: phy:

@@ -1,0 +1,167 @@
+From dbcd85b05c5ba520b75dbf51d0b48b5a366b6c68 Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:03 +0100
+Subject: [PATCH] net: phy: phy_caps: Implement link_capabilities lookup by
+ linkmode
+
+In several occasions, phylib needs to lookup a set of matching speed and
+duplex against a given linkmode set. Instead of relying on the
+phy_settings array and thus iterate over the whole linkmodes list, use
+the link_capabilities array to lookup these matches, as we aren't
+interested in the actual link setting that matches but rather the speed
+and duplex for that setting.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-7-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-caps.h |  5 +++++
+ drivers/net/phy/phy-core.c | 36 +++++++++++++-----------------
+ drivers/net/phy/phy_caps.c | 45 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 65 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/net/phy/phy-caps.h b/drivers/net/phy/phy-caps.h
+index 1217686f1f9178..8833798f141f33 100644
+--- a/drivers/net/phy/phy-caps.h
++++ b/drivers/net/phy/phy-caps.h
+@@ -45,5 +45,10 @@ size_t phy_caps_speeds(unsigned int *speeds, size_t size,
+ void phy_caps_linkmode_max_speed(u32 max_speed, unsigned long *linkmodes);
+ bool phy_caps_valid(int speed, int duplex, const unsigned long *linkmodes);
+ 
++const struct link_capabilities *
++phy_caps_lookup_by_linkmode(const unsigned long *linkmodes);
++
++const struct link_capabilities *
++phy_caps_lookup_by_linkmode_rev(const unsigned long *linkmodes, bool fdx_only);
+ 
+ #endif /* __PHY_CAPS_H */
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index 741350d7d29cfc..a1caa0f313ecd2 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -469,16 +469,15 @@ EXPORT_SYMBOL_GPL(phy_resolve_aneg_pause);
+ void phy_resolve_aneg_linkmode(struct phy_device *phydev)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(common);
+-	int i;
++	const struct link_capabilities *c;
+ 
+ 	linkmode_and(common, phydev->lp_advertising, phydev->advertising);
+ 
+-	for (i = 0; i < ARRAY_SIZE(settings); i++)
+-		if (test_bit(settings[i].bit, common)) {
+-			phydev->speed = settings[i].speed;
+-			phydev->duplex = settings[i].duplex;
+-			break;
+-		}
++	c = phy_caps_lookup_by_linkmode(common);
++	if (c) {
++		phydev->speed = c->speed;
++		phydev->duplex = c->duplex;
++	}
+ 
+ 	phy_resolve_aneg_pause(phydev);
+ }
+@@ -496,7 +495,8 @@ EXPORT_SYMBOL_GPL(phy_resolve_aneg_linkmode);
+ void phy_check_downshift(struct phy_device *phydev)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(common);
+-	int i, speed = SPEED_UNKNOWN;
++	const struct link_capabilities *c;
++	int speed = SPEED_UNKNOWN;
+ 
+ 	phydev->downshifted_rate = 0;
+ 
+@@ -506,11 +506,9 @@ void phy_check_downshift(struct phy_device *phydev)
+ 
+ 	linkmode_and(common, phydev->lp_advertising, phydev->advertising);
+ 
+-	for (i = 0; i < ARRAY_SIZE(settings); i++)
+-		if (test_bit(settings[i].bit, common)) {
+-			speed = settings[i].speed;
+-			break;
+-		}
++	c = phy_caps_lookup_by_linkmode(common);
++	if (c)
++		speed = c->speed;
+ 
+ 	if (speed == SPEED_UNKNOWN || phydev->speed >= speed)
+ 		return;
+@@ -524,17 +522,13 @@ void phy_check_downshift(struct phy_device *phydev)
+ static int phy_resolve_min_speed(struct phy_device *phydev, bool fdx_only)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(common);
+-	int i = ARRAY_SIZE(settings);
++	const struct link_capabilities *c;
+ 
+ 	linkmode_and(common, phydev->lp_advertising, phydev->advertising);
+ 
+-	while (--i >= 0) {
+-		if (test_bit(settings[i].bit, common)) {
+-			if (fdx_only && settings[i].duplex != DUPLEX_FULL)
+-				continue;
+-			return settings[i].speed;
+-		}
+-	}
++	c = phy_caps_lookup_by_linkmode_rev(common, fdx_only);
++	if (c)
++		return c->speed;
+ 
+ 	return SPEED_UNKNOWN;
+ }
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index 4ee8c25c8521ce..c39f38c12ef2a1 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -125,6 +125,51 @@ size_t phy_caps_speeds(unsigned int *speeds, size_t size,
+ 	return count;
+ }
+ 
++/**
++ * phy_caps_lookup_by_linkmode() - Lookup the fastest matching link_capabilities
++ * @linkmodes: Linkmodes to match against
++ *
++ * Returns: The highest-speed link_capabilities that intersects the given
++ *	    linkmodes. In case several DUPLEX_ options exist at that speed,
++ *	    DUPLEX_FULL is matched first. NULL is returned if no match.
++ */
++const struct link_capabilities *
++phy_caps_lookup_by_linkmode(const unsigned long *linkmodes)
++{
++	struct link_capabilities *lcap;
++
++	for_each_link_caps_desc_speed(lcap)
++		if (linkmode_intersects(lcap->linkmodes, linkmodes))
++			return lcap;
++
++	return NULL;
++}
++
++/**
++ * phy_caps_lookup_by_linkmode_rev() - Lookup the slowest matching link_capabilities
++ * @linkmodes: Linkmodes to match against
++ * @fdx_only: Full duplex match only when set
++ *
++ * Returns: The lowest-speed link_capabilities that intersects the given
++ *	    linkmodes. When set, fdx_only will ignore half-duplex matches.
++ *	    NULL is returned if no match.
++ */
++const struct link_capabilities *
++phy_caps_lookup_by_linkmode_rev(const unsigned long *linkmodes, bool fdx_only)
++{
++	struct link_capabilities *lcap;
++
++	for_each_link_caps_asc_speed(lcap) {
++		if (fdx_only && lcap->duplex != DUPLEX_FULL)
++			continue;
++
++		if (linkmode_intersects(lcap->linkmodes, linkmodes))
++			return lcap;
++	}
++
++	return NULL;
++}
++
+ /**
+  * phy_caps_linkmode_max_speed() - Clamp a linkmodes set to a max speed
+  * @max_speed: Speed limit for the linkmode set

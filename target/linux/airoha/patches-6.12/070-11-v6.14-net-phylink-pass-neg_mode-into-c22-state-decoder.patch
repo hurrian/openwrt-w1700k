@@ -1,0 +1,222 @@
+From 7e3cb4e874ab0dcf8b10e43e5068824bf0adcb4c Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 13 Jan 2025 09:22:34 +0000
+Subject: [PATCH] net: phylink: pass neg_mode into c22 state decoder
+
+Pass the current neg_mode into phylink_mii_c22_pcs_get_state() and
+phylink_mii_c22_pcs_decode_state(). Update all users of phylink PCS
+that use these functions.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Tested-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1tXGeY-000Et9-8g@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/ethernet/freescale/fman/fman_dtsec.c         | 2 +-
+ drivers/net/ethernet/microchip/lan966x/lan966x_main.h    | 2 +-
+ drivers/net/ethernet/microchip/lan966x/lan966x_phylink.c | 2 +-
+ drivers/net/ethernet/microchip/lan966x/lan966x_port.c    | 4 ++--
+ drivers/net/ethernet/xilinx/xilinx_axienet_main.c        | 2 +-
+ drivers/net/pcs/pcs-lynx.c                               | 2 +-
+ drivers/net/pcs/pcs-mtk-lynxi.c                          | 3 ++-
+ drivers/net/pcs/pcs-xpcs.c                               | 5 +++--
+ drivers/net/phy/phylink.c                                | 7 +++++--
+ include/linux/phylink.h                                  | 3 ++-
+ 10 files changed, 19 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/net/ethernet/freescale/fman/fman_dtsec.c b/drivers/net/ethernet/freescale/fman/fman_dtsec.c
+index c47108c820ea0c..b3e2a596ad2c82 100644
+--- a/drivers/net/ethernet/freescale/fman/fman_dtsec.c
++++ b/drivers/net/ethernet/freescale/fman/fman_dtsec.c
+@@ -760,7 +760,7 @@ static void dtsec_pcs_get_state(struct phylink_pcs *pcs, unsigned int neg_mode,
+ {
+ 	struct fman_mac *dtsec = pcs_to_dtsec(pcs);
+ 
+-	phylink_mii_c22_pcs_get_state(dtsec->tbidev, state);
++	phylink_mii_c22_pcs_get_state(dtsec->tbidev, neg_mode, state);
+ }
+ 
+ static int dtsec_pcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+diff --git a/drivers/net/ethernet/microchip/lan966x/lan966x_main.h b/drivers/net/ethernet/microchip/lan966x/lan966x_main.h
+index 25cb2f61986f69..1efa584e710777 100644
+--- a/drivers/net/ethernet/microchip/lan966x/lan966x_main.h
++++ b/drivers/net/ethernet/microchip/lan966x/lan966x_main.h
+@@ -443,7 +443,7 @@ int lan966x_stats_init(struct lan966x *lan966x);
+ 
+ void lan966x_port_config_down(struct lan966x_port *port);
+ void lan966x_port_config_up(struct lan966x_port *port);
+-void lan966x_port_status_get(struct lan966x_port *port,
++void lan966x_port_status_get(struct lan966x_port *port, unsigned int neg_mode,
+ 			     struct phylink_link_state *state);
+ int lan966x_port_pcs_set(struct lan966x_port *port,
+ 			 struct lan966x_port_config *config);
+diff --git a/drivers/net/ethernet/microchip/lan966x/lan966x_phylink.c b/drivers/net/ethernet/microchip/lan966x/lan966x_phylink.c
+index a761777259bfda..75188b99e4e774 100644
+--- a/drivers/net/ethernet/microchip/lan966x/lan966x_phylink.c
++++ b/drivers/net/ethernet/microchip/lan966x/lan966x_phylink.c
+@@ -93,7 +93,7 @@ static void lan966x_pcs_get_state(struct phylink_pcs *pcs,
+ {
+ 	struct lan966x_port *port = lan966x_pcs_to_port(pcs);
+ 
+-	lan966x_port_status_get(port, state);
++	lan966x_port_status_get(port, neg_mode, state);
+ }
+ 
+ static int lan966x_pcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+diff --git a/drivers/net/ethernet/microchip/lan966x/lan966x_port.c b/drivers/net/ethernet/microchip/lan966x/lan966x_port.c
+index fdfa4040d9ee2f..cf7de0267c32de 100644
+--- a/drivers/net/ethernet/microchip/lan966x/lan966x_port.c
++++ b/drivers/net/ethernet/microchip/lan966x/lan966x_port.c
+@@ -284,7 +284,7 @@ void lan966x_port_config_up(struct lan966x_port *port)
+ 	lan966x_port_link_up(port);
+ }
+ 
+-void lan966x_port_status_get(struct lan966x_port *port,
++void lan966x_port_status_get(struct lan966x_port *port, unsigned int neg_mode,
+ 			     struct phylink_link_state *state)
+ {
+ 	struct lan966x *lan966x = port->lan966x;
+@@ -314,7 +314,7 @@ void lan966x_port_status_get(struct lan966x_port *port,
+ 		bmsr |= BMSR_ANEGCOMPLETE;
+ 
+ 		lp_adv = DEV_PCS1G_ANEG_STATUS_LP_ADV_GET(val);
+-		phylink_mii_c22_pcs_decode_state(state, bmsr, lp_adv);
++		phylink_mii_c22_pcs_decode_state(state, neg_mode, bmsr, lp_adv);
+ 	} else {
+ 		if (!state->link)
+ 			return;
+diff --git a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+index f9e695d7cc4a28..3531646ef6ab73 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ b/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -2336,7 +2336,7 @@ static void axienet_pcs_get_state(struct phylink_pcs *pcs,
+ {
+ 	struct mdio_device *pcs_phy = pcs_to_axienet_local(pcs)->pcs_phy;
+ 
+-	phylink_mii_c22_pcs_get_state(pcs_phy, state);
++	phylink_mii_c22_pcs_get_state(pcs_phy, neg_mode, state);
+ }
+ 
+ static void axienet_pcs_an_restart(struct phylink_pcs *pcs)
+diff --git a/drivers/net/pcs/pcs-lynx.c b/drivers/net/pcs/pcs-lynx.c
+index f359f62f69add3..e46f588cae7d3e 100644
+--- a/drivers/net/pcs/pcs-lynx.c
++++ b/drivers/net/pcs/pcs-lynx.c
+@@ -109,7 +109,7 @@ static void lynx_pcs_get_state(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 	case PHY_INTERFACE_MODE_1000BASEX:
+ 	case PHY_INTERFACE_MODE_SGMII:
+ 	case PHY_INTERFACE_MODE_QSGMII:
+-		phylink_mii_c22_pcs_get_state(lynx->mdio, state);
++		phylink_mii_c22_pcs_get_state(lynx->mdio, neg_mode, state);
+ 		break;
+ 	case PHY_INTERFACE_MODE_2500BASEX:
+ 		lynx_pcs_get_state_2500basex(lynx->mdio, state);
+diff --git a/drivers/net/pcs/pcs-mtk-lynxi.c b/drivers/net/pcs/pcs-mtk-lynxi.c
+index e1b6f332c3c2e2..7d6261dee53402 100644
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -131,7 +131,9 @@
+ 	}
+ 
+ 	regmap_read(mpcs->regmap, SGMSYS_PCS_ADVERTISE, &adv);
+-	phylink_mii_c22_pcs_decode_state(state, bmsr, FIELD_GET(SGMII_LPA, adv));
++	phylink_mii_c22_pcs_decode_state(state, neg_mode,
++					 FIELD_GET(SGMII_BMSR, bm),
++					 FIELD_GET(SGMII_LPA, adv));
+ }
+ 
+ static void mtk_sgmii_reset(struct mtk_pcs_lynxi *mpcs)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 4cd0c4fe64963c..1aef2afd3c7391 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1030,6 +1030,7 @@ static int xpcs_get_state_c37_sgmii(struct dw_xpcs *xpcs,
+ }
+ 
+ static int xpcs_get_state_c37_1000basex(struct dw_xpcs *xpcs,
++					unsigned int neg_mode,
+ 					struct phylink_link_state *state)
+ {
+ 	int lpa, bmsr;
+@@ -1058,7 +1059,7 @@ static int xpcs_get_state_c37_1000basex(struct dw_xpcs *xpcs,
+ 			}
+ 		}
+ 
+-		phylink_mii_c22_pcs_decode_state(state, bmsr, lpa);
++		phylink_mii_c22_pcs_decode_state(state, neg_mode, bmsr, lpa);
+ 	}
+ 
+ 	return 0;
+@@ -1122,7 +1122,7 @@ static void xpcs_get_state(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 		}
+ 		break;
+ 	case DW_AN_C37_1000BASEX:
+-		ret = xpcs_get_state_c37_1000basex(xpcs, state);
++		ret = xpcs_get_state_c37_1000basex(xpcs, neg_mode, state);
+ 		if (ret) {
+ 			pr_err("xpcs_get_state_c37_1000basex returned %pe\n",
+ 			       ERR_PTR(ret));
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index a8d443ee18be02..b29b7e73b5bd01 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3860,6 +3860,7 @@ static void phylink_decode_usgmii_word(struct phylink_link_state *state,
+ /**
+  * phylink_mii_c22_pcs_decode_state() - Decode MAC PCS state from MII registers
+  * @state: a pointer to a &struct phylink_link_state.
++ * @neg_mode: link negotiation mode (PHYLINK_PCS_NEG_xxx)
+  * @bmsr: The value of the %MII_BMSR register
+  * @lpa: The value of the %MII_LPA register
+  *
+@@ -3872,7 +3873,7 @@ static void phylink_decode_usgmii_word(struct phylink_link_state *state,
+  * accessing @bmsr and @lpa cannot be done with MDIO directly.
+  */
+ void phylink_mii_c22_pcs_decode_state(struct phylink_link_state *state,
+-				      u16 bmsr, u16 lpa)
++				      unsigned int neg_mode, u16 bmsr, u16 lpa)
+ {
+ 	state->link = !!(bmsr & BMSR_LSTATUS);
+ 	state->an_complete = !!(bmsr & BMSR_ANEGCOMPLETE);
+@@ -3910,6 +3911,7 @@ EXPORT_SYMBOL_GPL(phylink_mii_c22_pcs_decode_state);
+ /**
+  * phylink_mii_c22_pcs_get_state() - read the MAC PCS state
+  * @pcs: a pointer to a &struct mdio_device.
++ * @neg_mode: link negotiation mode (PHYLINK_PCS_NEG_xxx)
+  * @state: a pointer to a &struct phylink_link_state.
+  *
+  * Helper for MAC PCS supporting the 802.3 clause 22 register set for
+@@ -3922,6 +3924,7 @@ EXPORT_SYMBOL_GPL(phylink_mii_c22_pcs_decode_state);
+  * structure.
+  */
+ void phylink_mii_c22_pcs_get_state(struct mdio_device *pcs,
++				   unsigned int neg_mode,
+ 				   struct phylink_link_state *state)
+ {
+ 	int bmsr, lpa;
+@@ -3933,7 +3936,7 @@ void phylink_mii_c22_pcs_get_state(struct mdio_device *pcs,
+ 		return;
+ 	}
+ 
+-	phylink_mii_c22_pcs_decode_state(state, bmsr, lpa);
++	phylink_mii_c22_pcs_decode_state(state, neg_mode, bmsr, lpa);
+ }
+ EXPORT_SYMBOL_GPL(phylink_mii_c22_pcs_get_state);
+ 
+diff --git a/include/linux/phylink.h b/include/linux/phylink.h
+index 0bbcb4898e9315..f19b7108c8408c 100644
+--- a/include/linux/phylink.h
++++ b/include/linux/phylink.h
+@@ -693,8 +693,9 @@ static inline int phylink_get_link_timer_ns(phy_interface_t interface)
+ }
+ 
+ void phylink_mii_c22_pcs_decode_state(struct phylink_link_state *state,
+-				      u16 bmsr, u16 lpa);
++				      unsigned int neg_mode, u16 bmsr, u16 lpa);
+ void phylink_mii_c22_pcs_get_state(struct mdio_device *pcs,
++				   unsigned int neg_mode,
+ 				   struct phylink_link_state *state);
+ int phylink_mii_c22_pcs_encode_advertisement(phy_interface_t interface,
+ 					     const unsigned long *advertising);
