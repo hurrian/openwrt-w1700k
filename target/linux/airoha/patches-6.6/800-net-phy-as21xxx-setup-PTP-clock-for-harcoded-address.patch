@@ -29,7 +29,7 @@ index 92697f43087d..d4d855647b6d 100644
  	int ret;
  
 +	if (phydev->mdio.addr == 0x1c ||
-+	    phydev->mdio.addr == 0x1c) {
++	    phydev->mdio.addr == 0x1d) {
 +		phy_write_mmd(phydev, MDIO_MMD_VEND1, VEND1_PTP_CLK,
 +			      0x48);
 +		as21xxx_mdio_patch(phydev);
