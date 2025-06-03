@@ -1,0 +1,46 @@
+From 98a898e58499c78245e4fe36ee404b1b1208e32b Mon Sep 17 00:00:00 2001
+From: Mike Looijmans <mike.looijmans@topic.nl>
+Date: Tue, 8 Apr 2025 07:46:38 +0200
+Subject: [PATCH] mtd: mtdpart: Support MTDPART_SIZ_FULL in fixed-partitions
+
+Flash partitions may specify MTDPART_SIZ_FULL (=0) as the size of the
+partition to indicate "the remainder of the flash". Make this work with
+device-tree "fixed-partitions" as well.
+
+This makes MTD partitioning compatible with the Linux kernel, see:
+  https://github.com/torvalds/linux/blob/master/include/linux/mtd/partitions.h#L29
+  https://github.com/torvalds/linux/blob/master/drivers/mtd/mtdpart.c#L123
+
+Previously, this could only be done through MTDPARTS so this change allows
+boards like topic_miami to migrate from `mtdparts`/`mtdids` to devicetree
+partitions.
+
+Signed-off-by: Mike Looijmans <mike.looijmans@topic.nl>
+Reviewed-by: Michael Trimarchi <michael@amarulasolutions.com>
+---
+ drivers/mtd/mtdpart.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mtd/mtdpart.c b/drivers/mtd/mtdpart.c
+index 99bea6f1c85..842d3e7274e 100644
+--- a/drivers/mtd/mtdpart.c
++++ b/drivers/mtd/mtdpart.c
+@@ -909,11 +909,13 @@ int add_mtd_partitions_of(struct mtd_info *master)
+ 			continue;
+ 
+ 		offset = ofnode_get_addr_size_index_notrans(child, 0, &size);
+-		if (offset == FDT_ADDR_T_NONE || !size) {
+-			debug("Missing partition offset/size on \"%s\" partition\n",
++		if (offset == FDT_ADDR_T_NONE) {
++			debug("Missing partition offset on \"%s\" partition\n",
+ 			      master->name);
+ 			continue;
+ 		}
++		if (size == MTDPART_SIZ_FULL)
++			size = master->size - offset;
+ 
+ 		part.name = ofnode_read_string(child, "label");
+ 		if (!part.name)
+-- 
+2.48.1
+
