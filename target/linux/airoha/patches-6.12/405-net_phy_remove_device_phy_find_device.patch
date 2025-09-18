@@ -1,0 +1,63 @@
+From f99564688f38458d86b64f099ebf03f19517cf77 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Sun, 13 Apr 2025 16:09:40 +0200
+Subject: [PATCH] net: phy: remove device_phy_find_device
+
+AFAICS this function has never had a user.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/ab7b8094-2eea-4e82-a047-fd60117f220b@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phy_device.c | 12 ------------
+ include/linux/phy.h          |  6 ------
+ 2 files changed, 18 deletions(-)
+
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index cc1bfd22fb8120..cc6c209fe70229 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -3235,18 +3235,6 @@ struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode)
+ }
+ EXPORT_SYMBOL(fwnode_phy_find_device);
+ 
+-/**
+- * device_phy_find_device - For the given device, get the phy_device
+- * @dev: Pointer to the given device
+- *
+- * Refer return conditions of fwnode_phy_find_device().
+- */
+-struct phy_device *device_phy_find_device(struct device *dev)
+-{
+-	return fwnode_phy_find_device(dev_fwnode(dev));
+-}
+-EXPORT_SYMBOL_GPL(device_phy_find_device);
+-
+ /**
+  * fwnode_get_phy_node - Get the phy_node using the named reference.
+  * @fwnode: Pointer to fwnode from which phy_node has to be obtained.
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index a2bfae80c44975..fb755358d965b7 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1757,7 +1757,6 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
+ int fwnode_get_phy_id(struct fwnode_handle *fwnode, u32 *phy_id);
+ struct mdio_device *fwnode_mdio_find_device(struct fwnode_handle *fwnode);
+ struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode);
+-struct phy_device *device_phy_find_device(struct device *dev);
+ struct fwnode_handle *fwnode_get_phy_node(const struct fwnode_handle *fwnode);
+ struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45);
+ int phy_device_register(struct phy_device *phy);
+@@ -1779,11 +1778,6 @@ struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode)
+ 	return NULL;
+ }
+ 
+-static inline struct phy_device *device_phy_find_device(struct device *dev)
+-{
+-	return NULL;
+-}
+-
+ static inline
+ struct fwnode_handle *fwnode_get_phy_node(struct fwnode_handle *fwnode)
+ {

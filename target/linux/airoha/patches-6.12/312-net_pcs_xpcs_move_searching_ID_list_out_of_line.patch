@@ -1,0 +1,83 @@
+From 7921d3e602fc89a36dbef5b46d307bed47396409 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 4 Oct 2024 11:21:12 +0100
+Subject: [PATCH] net: pcs: xpcs: move searching ID list out of line
+
+Move the searching of the physical ID out of xpcs_create() and into
+its own xpcs_identify() function, which makes it self contained.
+This reduces the complexity in xpcs_craete(), making it easier to
+follow, rather than having a lot of once-run code in the big for()
+loop.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/pcs/pcs-xpcs.c | 41 +++++++++++++++++++-------------------
+ 1 file changed, 21 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index db3f50f195ab1c..805856cabba147 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1339,6 +1339,26 @@ static const struct phylink_pcs_ops xpcs_phylink_ops = {
+ 	.pcs_link_up = xpcs_link_up,
+ };
+ 
++static int xpcs_identify(struct dw_xpcs *xpcs)
++{
++	int i, ret;
++
++	ret = xpcs_read_ids(xpcs);
++	if (ret < 0)
++		return ret;
++
++	for (i = 0; i < ARRAY_SIZE(xpcs_desc_list); i++) {
++		const struct dw_xpcs_desc *entry = &xpcs_desc_list[i];
++
++		if ((xpcs->info.pcs & entry->mask) == entry->id) {
++			xpcs->desc = entry;
++			return 0;
++		}
++	}
++
++	return -ENODEV;
++}
++
+ static struct dw_xpcs *xpcs_create_data(struct mdio_device *mdiodev)
+ {
+ 	struct dw_xpcs *xpcs;
+@@ -1395,7 +1415,6 @@ static void xpcs_clear_clks(struct dw_xpcs *xpcs)
+ static int xpcs_init_id(struct dw_xpcs *xpcs)
+ {
+ 	const struct dw_xpcs_info *info;
+-	int i, ret;
+ 
+ 	info = dev_get_platdata(&xpcs->mdiodev->dev);
+ 	if (!info) {
+@@ -1405,25 +1424,7 @@ static int xpcs_init_id(struct dw_xpcs *xpcs)
+ 		xpcs->info = *info;
+ 	}
+ 
+-	ret = xpcs_read_ids(xpcs);
+-	if (ret < 0)
+-		return ret;
+-
+-	for (i = 0; i < ARRAY_SIZE(xpcs_desc_list); i++) {
+-		const struct dw_xpcs_desc *desc = &xpcs_desc_list[i];
+-
+-		if ((xpcs->info.pcs & desc->mask) != desc->id)
+-			continue;
+-
+-		xpcs->desc = desc;
+-
+-		break;
+-	}
+-
+-	if (!xpcs->desc)
+-		return -ENODEV;
+-
+-	return 0;
++	return xpcs_identify(xpcs);
+ }
+ 
+ static struct dw_xpcs *xpcs_create(struct mdio_device *mdiodev)

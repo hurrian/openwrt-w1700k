@@ -1,0 +1,80 @@
+From 4490f5669b067359cf149ce1acf5b19c38a5edad Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 4 Oct 2024 11:20:51 +0100
+Subject: [PATCH] net: pcs: xpcs: pass xpcs instead of xpcs->id to
+ xpcs_find_compat()
+
+xpcs_find_compat() is now always passed xpcs->id. Rather than always
+dereferencing this in the caller, move it into xpcs_find_compat(),
+thus making this function consistent with most of the other xpcs
+functions in taking an xpcs pointer.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/pcs/pcs-xpcs.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 4fbf7c816ed53b..8bde87ab971f6f 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -121,11 +121,11 @@ struct dw_xpcs_desc {
+ };
+ 
+ static const struct dw_xpcs_compat *
+-xpcs_find_compat(const struct dw_xpcs_desc *desc, phy_interface_t interface)
++xpcs_find_compat(struct dw_xpcs *xpcs, phy_interface_t interface)
+ {
+ 	const struct dw_xpcs_compat *compat;
+ 
+-	for (compat = desc->compat; compat->supported; compat++)
++	for (compat = xpcs->desc->compat; compat->supported; compat++)
+ 		if (compat->interface == interface)
+ 			return compat;
+ 
+@@ -136,7 +136,7 @@ int xpcs_get_an_mode(struct dw_xpcs *xpcs, phy_interface_t interface)
+ {
+ 	const struct dw_xpcs_compat *compat;
+ 
+-	compat = xpcs_find_compat(xpcs->desc, interface);
++	compat = xpcs_find_compat(xpcs, interface);
+ 	if (!compat)
+ 		return -ENODEV;
+ 
+@@ -548,7 +548,7 @@ static int xpcs_validate(struct phylink_pcs *pcs, unsigned long *supported,
+ 	int i;
+ 
+ 	xpcs = phylink_pcs_to_xpcs(pcs);
+-	compat = xpcs_find_compat(xpcs->desc, state->interface);
++	compat = xpcs_find_compat(xpcs, state->interface);
+ 	if (!compat)
+ 		return -EINVAL;
+ 
+@@ -620,7 +620,7 @@ static void xpcs_pre_config(struct phylink_pcs *pcs, phy_interface_t interface)
+ 	if (!xpcs->need_reset)
+ 		return;
+ 
+-	compat = xpcs_find_compat(xpcs->desc, interface);
++	compat = xpcs_find_compat(xpcs, interface);
+ 	if (!compat) {
+ 		dev_err(&xpcs->mdiodev->dev, "unsupported interface %s\n",
+ 			phy_modes(interface));
+@@ -810,7 +810,7 @@ static int xpcs_do_config(struct dw_xpcs *xpcs, phy_interface_t interface,
+ 	const struct dw_xpcs_compat *compat;
+ 	int ret;
+ 
+-	compat = xpcs_find_compat(xpcs->desc, interface);
++	compat = xpcs_find_compat(xpcs, interface);
+ 	if (!compat)
+ 		return -ENODEV;
+ 
+@@ -1074,7 +1074,7 @@ static void xpcs_get_state(struct phylink_pcs *pcs,
+ 	const struct dw_xpcs_compat *compat;
+ 	int ret;
+ 
+-	compat = xpcs_find_compat(xpcs->desc, state->interface);
++	compat = xpcs_find_compat(xpcs, state->interface);
+ 	if (!compat)
+ 		return;
+ 

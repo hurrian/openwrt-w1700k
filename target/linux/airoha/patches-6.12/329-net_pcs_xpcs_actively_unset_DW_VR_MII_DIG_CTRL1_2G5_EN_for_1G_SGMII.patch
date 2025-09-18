@@ -1,0 +1,35 @@
+From d6e3316a1680305da291a5b5deaf424559aaf06c Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <vladimir.oltean@nxp.com>
+Date: Tue, 14 Jan 2025 18:47:21 +0200
+Subject: [PATCH] net: pcs: xpcs: actively unset DW_VR_MII_DIG_CTRL1_2G5_EN for
+ 1G SGMII
+
+xpcs_config_2500basex() sets DW_VR_MII_DIG_CTRL1_2G5_EN, but
+xpcs_config_aneg_c37_sgmii() never unsets it. So, on a protocol change
+from 2500base-x to sgmii, the DW_VR_MII_DIG_CTRL1_2G5_EN bit will remain
+set.
+
+Fixes: f27abde3042a ("net: pcs: add 2500BASEX support for Intel mGbE controller")
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/20250114164721.2879380-2-vladimir.oltean@nxp.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/pcs/pcs-xpcs.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 85cbf144ca4456..3059435af59650 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -685,7 +685,8 @@ static int xpcs_config_aneg_c37_sgmii(struct dw_xpcs *xpcs,
+ 		return ret;
+ 
+ 	val = 0;
+-	mask = DW_VR_MII_DIG_CTRL1_MAC_AUTO_SW;
++	mask = DW_VR_MII_DIG_CTRL1_2G5_EN | DW_VR_MII_DIG_CTRL1_MAC_AUTO_SW;
++
+ 	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED)
+ 		val = DW_VR_MII_DIG_CTRL1_MAC_AUTO_SW;
+ 

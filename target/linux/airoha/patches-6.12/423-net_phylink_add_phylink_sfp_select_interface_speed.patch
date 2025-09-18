@@ -1,0 +1,78 @@
+From 320164a6e172137bcefea669f0ff6ee3f4c8611e Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 2 Jul 2025 10:44:34 +0100
+Subject: [PATCH] net: phylink: add phylink_sfp_select_interface_speed()
+
+Add phylink_sfp_select_interface_speed() which attempts to select the
+SFP interface based on the ethtool speed when autoneg is turned off.
+This allows users to turn off autoneg for SFPs that support multiple
+interface modes, and have an appropriate interface mode selected.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1uWu14-005KXo-IO@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 41 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 40 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index c92a878ab717ae..f5473510b762c1 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -2709,6 +2709,39 @@ static phy_interface_t phylink_sfp_select_interface(struct phylink *pl,
+ 	return interface;
+ }
+ 
++static phy_interface_t phylink_sfp_select_interface_speed(struct phylink *pl,
++							  u32 speed)
++{
++	phy_interface_t best_interface = PHY_INTERFACE_MODE_NA;
++	phy_interface_t interface;
++	u32 max_speed;
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(phylink_sfp_interface_preference); i++) {
++		interface = phylink_sfp_interface_preference[i];
++		if (!test_bit(interface, pl->sfp_interfaces))
++			continue;
++
++		max_speed = phylink_interface_max_speed(interface);
++
++		/* The logic here is: if speed == max_speed, then we've found
++		 * the best interface. Otherwise we find the interface that
++		 * can just support the requested speed.
++		 */
++		if (max_speed >= speed)
++			best_interface = interface;
++
++		if (max_speed <= speed)
++			break;
++	}
++
++	if (best_interface == PHY_INTERFACE_MODE_NA)
++		phylink_err(pl, "selection of interface failed, speed %u\n",
++			    speed);
++
++	return best_interface;
++}
++
+ static void phylink_merge_link_mode(unsigned long *dst, const unsigned long *b)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(mask);
+@@ -2911,8 +2944,14 @@ int phylink_ethtool_ksettings_set(struct phylink *pl,
+ 	 * link can be configured correctly.
+ 	 */
+ 	if (pl->sfp_bus) {
+-		config.interface = phylink_sfp_select_interface(pl,
++		if (kset->base.autoneg == AUTONEG_ENABLE)
++			config.interface =
++				phylink_sfp_select_interface(pl,
+ 							config.advertising);
++		else
++			config.interface =
++				phylink_sfp_select_interface_speed(pl,
++							config.speed);
+ 		if (config.interface == PHY_INTERFACE_MODE_NA)
+ 			return -EINVAL;
+ 

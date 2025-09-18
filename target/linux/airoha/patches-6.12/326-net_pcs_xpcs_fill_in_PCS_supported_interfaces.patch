@@ -1,0 +1,29 @@
+From 906909fabb81dedf93a786c2d7247cab12e0a232 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 3 Jan 2025 11:16:36 +0000
+Subject: [PATCH] net: pcs: xpcs: fill in PCS supported_interfaces
+
+Fill in the new PCS supported_interfaces member with the interfaces
+that XPCS supports.
+
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/E1tTffQ-007RoJ-4u@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/pcs/pcs-xpcs.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index f70ca39f0905b2..cf41dc5e74e813 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1446,6 +1446,8 @@ static struct dw_xpcs *xpcs_create(struct mdio_device *mdiodev)
+ 	if (ret)
+ 		goto out_clear_clks;
+ 
++	xpcs_get_interfaces(xpcs, xpcs->pcs.supported_interfaces);
++
+ 	if (xpcs->info.pma == WX_TXGBE_XPCS_PMA_10G_ID)
+ 		xpcs->pcs.poll = false;
+ 	else

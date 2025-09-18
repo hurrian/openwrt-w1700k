@@ -1,0 +1,96 @@
+From 4145921c305545cf86d49c0dd665084fb7245225 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:52:59 +0100
+Subject: [PATCH] net: pcs: xpcs: combine xpcs_link_up_{1000basex,sgmii}()
+
+xpcs_link_up_sgmii() and xpcs_link_up_1000basex() are almost identical
+with the exception of checking the speed and duplex for 1000BASE-X.
+Combine the two functions.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 54 ++++++++++++++++----------------------
+ 1 file changed, 23 insertions(+), 31 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 5b38f9019f83e0..6cc658f8366c84 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1104,41 +1104,32 @@ static void xpcs_get_state(struct phylink_pcs *pcs,
+ 	}
+ }
+ 
+-static void xpcs_link_up_sgmii(struct dw_xpcs *xpcs, unsigned int neg_mode,
+-			       int speed, int duplex)
++static void xpcs_link_up_sgmii_1000basex(struct dw_xpcs *xpcs,
++					 unsigned int neg_mode,
++					 phy_interface_t interface,
++					 int speed, int duplex)
+ {
+-	int val, ret;
++	int ret;
+ 
+ 	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED)
+ 		return;
+ 
+-	val = mii_bmcr_encode_fixed(speed, duplex);
+-	ret = xpcs_write(xpcs, MDIO_MMD_VEND2, MII_BMCR, val);
+-	if (ret)
+-		dev_err(&xpcs->mdiodev->dev, "%s: xpcs_write returned %pe\n",
+-			__func__, ERR_PTR(ret));
+-}
+-
+-static void xpcs_link_up_1000basex(struct dw_xpcs *xpcs, unsigned int neg_mode,
+-				   int speed, int duplex)
+-{
+-	int val, ret;
+-
+-	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED)
+-		return;
++	if (interface == PHY_INTERFACE_MODE_1000BASEX) {
++		if (speed != SPEED_1000) {
++			dev_err(&xpcs->mdiodev->dev,
++				"%s: speed %dMbps not supported\n",
++				__func__, speed);
++			return;
++		}
+ 
+-	if (speed != SPEED_1000) {
+-		dev_err(&xpcs->mdiodev->dev, "%s: speed %dMbps not supported\n",
+-			__func__, speed);
+-		return;
++		if (duplex != DUPLEX_FULL)
++			dev_err(&xpcs->mdiodev->dev,
++				"%s: half duplex not supported\n",
++				__func__);
+ 	}
+ 
+-	if (duplex != DUPLEX_FULL)
+-		dev_err(&xpcs->mdiodev->dev, "%s: half duplex not supported\n",
+-			__func__);
+-
+-	val = mii_bmcr_encode_fixed(speed, duplex);
+-	ret = xpcs_write(xpcs, MDIO_MMD_VEND2, MII_BMCR, val);
++	ret = xpcs_write(xpcs, MDIO_MMD_VEND2, MII_BMCR,
++			 mii_bmcr_encode_fixed(speed, duplex));
+ 	if (ret)
+ 		dev_err(&xpcs->mdiodev->dev, "%s: xpcs_write returned %pe\n",
+ 			__func__, ERR_PTR(ret));
+@@ -1151,10 +1142,11 @@ static void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 
+ 	if (interface == PHY_INTERFACE_MODE_USXGMII)
+ 		return xpcs_config_usxgmii(xpcs, speed);
+-	if (interface == PHY_INTERFACE_MODE_SGMII)
+-		return xpcs_link_up_sgmii(xpcs, neg_mode, speed, duplex);
+-	if (interface == PHY_INTERFACE_MODE_1000BASEX)
+-		return xpcs_link_up_1000basex(xpcs, neg_mode, speed, duplex);
++
++	if (interface == PHY_INTERFACE_MODE_SGMII ||
++	    interface == PHY_INTERFACE_MODE_1000BASEX)
++		return xpcs_link_up_sgmii_1000basex(xpcs, neg_mode, interface,
++						    speed, duplex);
+ }
+ 
+ static void xpcs_an_restart(struct phylink_pcs *pcs)

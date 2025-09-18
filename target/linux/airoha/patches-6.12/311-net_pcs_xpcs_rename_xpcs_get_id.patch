@@ -1,0 +1,36 @@
+From 135d118bfd01471d2953e0bd941adde482e54a6d Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 4 Oct 2024 11:21:06 +0100
+Subject: [PATCH] net: pcs: xpcs: rename xpcs_get_id()
+
+Rename xpcs_get_id() to xpcs_read_id() which more closely reflects
+the purpose of this function.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/pcs/pcs-xpcs.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index a7f6d56183a724..db3f50f195ab1c 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1190,7 +1190,7 @@ static void xpcs_an_restart(struct phylink_pcs *pcs)
+ 	}
+ }
+ 
+-static int xpcs_get_id(struct dw_xpcs *xpcs)
++static int xpcs_read_ids(struct dw_xpcs *xpcs)
+ {
+ 	int ret;
+ 	u32 id;
+@@ -1405,7 +1405,7 @@ static int xpcs_init_id(struct dw_xpcs *xpcs)
+ 		xpcs->info = *info;
+ 	}
+ 
+-	ret = xpcs_get_id(xpcs);
++	ret = xpcs_read_ids(xpcs);
+ 	if (ret < 0)
+ 		return ret;
+ 

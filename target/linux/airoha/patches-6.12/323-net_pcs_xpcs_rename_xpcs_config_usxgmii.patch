@@ -1,0 +1,37 @@
+From 11afdf3b2ecee038dda8a38b6b6e6d232e64a210 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:53:05 +0100
+Subject: [PATCH] net: pcs: xpcs: rename xpcs_config_usxgmii()
+
+xpcs_config_usxgmii() is only called from the xpcs_link_up() method, so
+let's name it similarly to the SGMII and 1000BASEX functions.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 6cc658f8366c84..89ceedc0f18b8c 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -311,7 +311,7 @@ static int xpcs_read_fault_c73(struct dw_xpcs *xpcs,
+ 	return 0;
+ }
+ 
+-static void xpcs_config_usxgmii(struct dw_xpcs *xpcs, int speed)
++static void xpcs_link_up_usxgmii(struct dw_xpcs *xpcs, int speed)
+ {
+ 	int ret, speed_sel;
+ 
+@@ -1141,7 +1141,7 @@ static void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 	struct dw_xpcs *xpcs = phylink_pcs_to_xpcs(pcs);
+ 
+ 	if (interface == PHY_INTERFACE_MODE_USXGMII)
+-		return xpcs_config_usxgmii(xpcs, speed);
++		return xpcs_link_up_usxgmii(xpcs, speed);
+ 
+ 	if (interface == PHY_INTERFACE_MODE_SGMII ||
+ 	    interface == PHY_INTERFACE_MODE_1000BASEX)

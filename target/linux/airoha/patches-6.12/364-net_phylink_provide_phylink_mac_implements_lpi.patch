@@ -1,0 +1,54 @@
+From 2001d21592e5eb531d23950223eedad55c987db8 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 10 Feb 2025 10:36:44 +0000
+Subject: [PATCH] net: phylink: provide phylink_mac_implements_lpi()
+
+Provide a helper to determine whether the MAC operations structure
+implements the LPI operations, which will be used by both phylink and
+DSA.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/E1thR9g-003vX6-4s@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c |  3 +--
+ include/linux/phylink.h   | 12 ++++++++++++
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 214b62fba991ed..6fbb5fd5b400d8 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -1957,8 +1957,7 @@ struct phylink *phylink_create(struct phylink_config *config,
+ 		return ERR_PTR(-EINVAL);
+ 	}
+ 
+-	pl->mac_supports_eee_ops = mac_ops->mac_disable_tx_lpi &&
+-				   mac_ops->mac_enable_tx_lpi;
++	pl->mac_supports_eee_ops = phylink_mac_implements_lpi(mac_ops);
+ 	pl->mac_supports_eee = pl->mac_supports_eee_ops &&
+ 			       pl->config->lpi_capabilities &&
+ 			       !phy_interface_empty(pl->config->lpi_interfaces);
+diff --git a/include/linux/phylink.h b/include/linux/phylink.h
+index 898b00451bbfd2..0de78673172de7 100644
+--- a/include/linux/phylink.h
++++ b/include/linux/phylink.h
+@@ -737,6 +737,18 @@ static inline int phylink_get_link_timer_ns(phy_interface_t interface)
+ 	}
+ }
+ 
++/**
++ * phylink_mac_implements_lpi() - determine if MAC implements LPI ops
++ * @ops: phylink_mac_ops structure
++ *
++ * Returns true if the phylink MAC operations structure indicates that the
++ * LPI operations have been implemented, false otherwise.
++ */
++static inline bool phylink_mac_implements_lpi(const struct phylink_mac_ops *ops)
++{
++	return ops && ops->mac_disable_tx_lpi && ops->mac_enable_tx_lpi;
++}
++
+ void phylink_mii_c22_pcs_decode_state(struct phylink_link_state *state,
+ 				      unsigned int neg_mode, u16 bmsr, u16 lpa);
+ void phylink_mii_c22_pcs_get_state(struct mdio_device *pcs,

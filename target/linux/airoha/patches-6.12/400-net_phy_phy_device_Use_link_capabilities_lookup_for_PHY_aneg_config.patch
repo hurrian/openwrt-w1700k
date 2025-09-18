@@ -1,0 +1,50 @@
+From c7ae89c6b4d55de583eb08da8100dc20a2828d9e Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:05 +0100
+Subject: [PATCH] net: phy: phy_device: Use link_capabilities lookup for PHY
+ aneg config
+
+When configuring PHY advertising with autoneg disabled, we lookd for an
+exact linkmode to advertise and configure for the requested Speed and
+Duplex, specially at or over 1G.
+
+Using phy_caps_lookup allows us to build a list of the supported
+linkmodes at that speed that we can advertise instead of the first mode
+that matches.
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-9-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy_device.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index 4980862398d049..3f734e847e8e26 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -2120,7 +2120,7 @@ EXPORT_SYMBOL(genphy_check_and_restart_aneg);
+ int __genphy_config_aneg(struct phy_device *phydev, bool changed)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(fixed_advert);
+-	const struct phy_setting *set;
++	const struct link_capabilities *c;
+ 	unsigned long *advert;
+ 	int err;
+ 
+@@ -2146,10 +2146,11 @@ int __genphy_config_aneg(struct phy_device *phydev, bool changed)
+ 	} else {
+ 		linkmode_zero(fixed_advert);
+ 
+-		set = phy_lookup_setting(phydev->speed, phydev->duplex,
+-					 phydev->supported, true);
+-		if (set)
+-			linkmode_set_bit(set->bit, fixed_advert);
++		c = phy_caps_lookup(phydev->speed, phydev->duplex,
++				    phydev->supported, true);
++		if (c)
++			linkmode_and(fixed_advert, phydev->supported,
++				     c->linkmodes);
+ 
+ 		advert = fixed_advert;
+ 	}

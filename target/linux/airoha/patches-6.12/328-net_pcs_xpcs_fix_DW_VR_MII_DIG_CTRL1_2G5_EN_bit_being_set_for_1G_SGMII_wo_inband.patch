@@ -1,0 +1,43 @@
+From 5c71729ab92c7e710d48ed93043a2d1e35cc8d3c Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <vladimir.oltean@nxp.com>
+Date: Tue, 14 Jan 2025 18:47:20 +0200
+Subject: [PATCH] net: pcs: xpcs: fix DW_VR_MII_DIG_CTRL1_2G5_EN bit being set
+ for 1G SGMII w/o inband
+
+On a port with SGMII fixed-link at SPEED_1000, DW_VR_MII_DIG_CTRL1 gets
+set to 0x2404. This is incorrect, because bit 2 (DW_VR_MII_DIG_CTRL1_2G5_EN)
+is set.
+
+It comes from the previous write to DW_VR_MII_AN_CTRL, because the "val"
+variable is reused and is dirty. Actually, its value is 0x4, aka
+FIELD_PREP(DW_VR_MII_PCS_MODE_MASK, DW_VR_MII_PCS_MODE_C37_SGMII).
+
+Resolve the issue by clearing "val" to 0 when writing to a new register.
+After the fix, the register value is 0x2400.
+
+Prior to the blamed commit, when the read-modify-write was open-coded,
+the code saved the content of the DW_VR_MII_DIG_CTRL1 register in the
+"ret" variable.
+
+Fixes: ce8d6081fcf4 ("net: pcs: xpcs: add _modify() accessors")
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/20250114164721.2879380-1-vladimir.oltean@nxp.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/pcs/pcs-xpcs.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 7246a910728d13..85cbf144ca4456 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -684,6 +684,7 @@ static int xpcs_config_aneg_c37_sgmii(struct dw_xpcs *xpcs,
+ 	if (ret < 0)
+ 		return ret;
+ 
++	val = 0;
+ 	mask = DW_VR_MII_DIG_CTRL1_MAC_AUTO_SW;
+ 	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED)
+ 		val = DW_VR_MII_DIG_CTRL1_MAC_AUTO_SW;

@@ -1,0 +1,44 @@
+From d69908faf1326fa019f7b44819e8ec459d285e48 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 4 Oct 2024 11:21:27 +0100
+Subject: [PATCH] net: pcs: xpcs: convert to use read_poll_timeout()
+
+Convert the xpcs driver to use read_poll_timeout() when waiting for
+reset to complete, rather than open-coding this.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/pcs/pcs-xpcs.c | 17 +++++++----------
+ 1 file changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 5ac8262ac264e9..06a4951354184e 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -220,18 +220,15 @@ static int xpcs_modify_vpcs(struct dw_xpcs *xpcs, int reg, u16 mask, u16 val)
+ 
+ static int xpcs_poll_reset(struct dw_xpcs *xpcs, int dev)
+ {
+-	/* Poll until the reset bit clears (50ms per retry == 0.6 sec) */
+-	unsigned int retries = 12;
+-	int ret;
++	int ret, val;
+ 
+-	do {
+-		msleep(50);
+-		ret = xpcs_read(xpcs, dev, MDIO_CTRL1);
+-		if (ret < 0)
+-			return ret;
+-	} while (ret & MDIO_CTRL1_RESET && --retries);
++	ret = read_poll_timeout(xpcs_read, val,
++				val < 0 || !(val & MDIO_CTRL1_RESET),
++				50000, 600000, true, xpcs, dev, MDIO_CTRL1);
++	if (val < 0)
++		ret = val;
+ 
+-	return (ret & MDIO_CTRL1_RESET) ? -ETIMEDOUT : 0;
++	return ret;
+ }
+ 
+ static int xpcs_soft_reset(struct dw_xpcs *xpcs,

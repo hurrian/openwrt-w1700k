@@ -1,0 +1,37 @@
+From 1c17f9d3fe17d296ff2d93740ee96a52a2343628 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:52:54 +0100
+Subject: [PATCH] net: pcs: xpcs: replace open-coded mii_bmcr_encode_fixed()
+
+We can now see that we have an open-coded version of
+mii_bmcr_encode_fixed() when this is called with SPEED_1000:
+
+        val = BMCR_SPEED1000;
+        if (duplex == DUPLEX_FULL)
+                val |= BMCR_FULLDPLX;
+
+Replace this with a call to mii_bmcr_encode_fixed().
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 3222b8851bff44..5b38f9019f83e0 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1137,10 +1137,7 @@ static void xpcs_link_up_1000basex(struct dw_xpcs *xpcs, unsigned int neg_mode,
+ 		dev_err(&xpcs->mdiodev->dev, "%s: half duplex not supported\n",
+ 			__func__);
+ 
+-	val = BMCR_SPEED1000;
+-	if (duplex == DUPLEX_FULL)
+-		val |= BMCR_FULLDPLX;
+-
++	val = mii_bmcr_encode_fixed(speed, duplex);
+ 	ret = xpcs_write(xpcs, MDIO_MMD_VEND2, MII_BMCR, val);
+ 	if (ret)
+ 		dev_err(&xpcs->mdiodev->dev, "%s: xpcs_write returned %pe\n",

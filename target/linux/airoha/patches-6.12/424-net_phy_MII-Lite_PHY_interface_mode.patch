@@ -1,0 +1,118 @@
+From 67c0170566b55b1f6ee3567c94ff679104277e2d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Kamil=20Hor=C3=A1k=20-=202N?= <kamilh@axis.com>
+Date: Tue, 8 Jul 2025 11:01:37 +0200
+Subject: [PATCH] net: phy: MII-Lite PHY interface mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Some Broadcom PHYs are capable to operate in simplified MII mode,
+without TXER, RXER, CRS and COL signals as defined for the MII.
+The MII-Lite mode can be used on most Ethernet controllers with full
+MII interface by just leaving the input signals (RXER, CRS, COL)
+inactive. The absence of COL signal makes half-duplex link modes
+impossible but does not interfere with BroadR-Reach link modes on
+Broadcom PHYs, because they are all full-duplex only.
+
+Add MII-Lite interface mode, especially for Broadcom two-wire PHYs.
+
+Signed-off-by: Kamil Horák - 2N <kamilh@axis.com>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Reviewed-by: Florian Fainelli <florian.fainelli@broadcom.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/20250708090140.61355-2-kamilh@axis.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ Documentation/networking/phy.rst | 7 +++++++
+ drivers/net/phy/phy-core.c       | 1 +
+ drivers/net/phy/phy_caps.c       | 4 ++++
+ drivers/net/phy/phylink.c        | 1 +
+ include/linux/phy.h              | 4 ++++
+ 5 files changed, 17 insertions(+)
+
+diff --git a/Documentation/networking/phy.rst b/Documentation/networking/phy.rst
+index f64641417c541f..7f159043ad5a96 100644
+--- a/Documentation/networking/phy.rst
++++ b/Documentation/networking/phy.rst
+@@ -333,6 +333,13 @@ Some of the interface modes are described below:
+     SerDes lane, each port having speeds of 2.5G / 1G / 100M / 10M achieved
+     through symbol replication. The PCS expects the standard USXGMII code word.
+ 
++``PHY_INTERFACE_MODE_MIILITE``
++    Non-standard, simplified MII mode, without TXER, RXER, CRS and COL signals
++    as defined for the MII. The absence of COL signal makes half-duplex link
++    modes impossible but does not interfere with BroadR-Reach link modes on
++    Broadcom (and other two-wire Ethernet) PHYs, because they are full-duplex
++    only.
++
+ Pause frames / flow control
+ ===========================
+ 
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index c480bb40fa7346..605ca20ae192d7 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -115,6 +115,7 @@ int phy_interface_num_ports(phy_interface_t interface)
+ 		return 0;
+ 	case PHY_INTERFACE_MODE_INTERNAL:
+ 	case PHY_INTERFACE_MODE_MII:
++	case PHY_INTERFACE_MODE_MIILITE:
+ 	case PHY_INTERFACE_MODE_GMII:
+ 	case PHY_INTERFACE_MODE_TBI:
+ 	case PHY_INTERFACE_MODE_REVMII:
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index d11ce1c7e712c5..2cc9ee97e867da 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -316,6 +316,10 @@ unsigned long phy_caps_from_interface(phy_interface_t interface)
+ 		link_caps |= BIT(LINK_CAPA_100HD) | BIT(LINK_CAPA_100FD);
+ 		break;
+ 
++	case PHY_INTERFACE_MODE_MIILITE:
++		link_caps |= BIT(LINK_CAPA_10FD) | BIT(LINK_CAPA_100FD);
++		break;
++
+ 	case PHY_INTERFACE_MODE_TBI:
+ 	case PHY_INTERFACE_MODE_MOCA:
+ 	case PHY_INTERFACE_MODE_RTBI:
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index f5473510b762c1..c7f867b361dda8 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -237,6 +237,7 @@ static int phylink_interface_max_speed(phy_interface_t interface)
+ 	case PHY_INTERFACE_MODE_SMII:
+ 	case PHY_INTERFACE_MODE_REVMII:
+ 	case PHY_INTERFACE_MODE_MII:
++	case PHY_INTERFACE_MODE_MIILITE:
+ 		return SPEED_100;
+ 
+ 	case PHY_INTERFACE_MODE_TBI:
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 543a94751a6bad..4c2b8b6e718792 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -106,6 +106,7 @@ extern const int phy_basic_ports_array[3];
+  * @PHY_INTERFACE_MODE_50GBASER: 50GBase-R - with Clause 134 FEC
+  * @PHY_INTERFACE_MODE_LAUI: 50 Gigabit Attachment Unit Interface
+  * @PHY_INTERFACE_MODE_100GBASEP: 100GBase-P - with Clause 134 FEC
++ * @PHY_INTERFACE_MODE_MIILITE: MII-Lite - MII without RXER TXER CRS COL
+  * @PHY_INTERFACE_MODE_MAX: Book keeping
+  *
+  * Describes the interface between the MAC and PHY.
+@@ -150,6 +151,7 @@ typedef enum {
+ 	PHY_INTERFACE_MODE_50GBASER,
+ 	PHY_INTERFACE_MODE_LAUI,
+ 	PHY_INTERFACE_MODE_100GBASEP,
++	PHY_INTERFACE_MODE_MIILITE,
+ 	PHY_INTERFACE_MODE_MAX,
+ } phy_interface_t;
+ 
+@@ -272,6 +274,8 @@ static inline const char *phy_modes(phy_interface_t interface)
+ 		return "laui";
+ 	case PHY_INTERFACE_MODE_100GBASEP:
+ 		return "100gbase-p";
++	case PHY_INTERFACE_MODE_MIILITE:
++		return "mii-lite";
+ 	default:
+ 		return "unknown";
+ 	}

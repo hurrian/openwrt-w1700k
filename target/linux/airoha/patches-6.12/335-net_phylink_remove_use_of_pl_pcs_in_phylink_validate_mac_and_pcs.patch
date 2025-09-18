@@ -1,0 +1,41 @@
+From 6c48cd044cc8f81b65872c8771a333fbad95997c Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 16 Oct 2024 10:58:39 +0100
+Subject: [PATCH] net: phylink: remove use of pl->pcs in
+ phylink_validate_mac_and_pcs()
+
+When the mac_select_pcs() method is not implemented, there is no way
+for pl->pcs to be set to a non-NULL value. This was here to support
+the old phylink_set_pcs() method which has been removed a few years
+ago. Simplify the code in phylink_validate_mac_and_pcs().
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Vladimir Oltean <olteanv@gmail.com>
+Signed-off-by: Andrew Lunn <andrew@lunn.ch>
+---
+ drivers/net/phy/phylink.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index aa1139efc7e425..94f3c5fd09ed79 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -649,8 +649,8 @@ static int phylink_validate_mac_and_pcs(struct phylink *pl,
+ 					unsigned long *supported,
+ 					struct phylink_link_state *state)
+ {
++	struct phylink_pcs *pcs = NULL;
+ 	unsigned long capabilities;
+-	struct phylink_pcs *pcs;
+ 	int ret;
+ 
+ 	/* Get the PCS for this interface mode */
+@@ -658,8 +658,6 @@ static int phylink_validate_mac_and_pcs(struct phylink *pl,
+ 		pcs = pl->mac_ops->mac_select_pcs(pl->config, state->interface);
+ 		if (IS_ERR(pcs))
+ 			return PTR_ERR(pcs);
+-	} else {
+-		pcs = pl->pcs;
+ 	}
+ 
+ 	if (pcs) {

@@ -1,0 +1,64 @@
+From db73835f54fc57bc267d43836905588f24ddac85 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Wed, 6 Nov 2024 21:25:12 +0100
+Subject: [PATCH] net: phy: remove genphy_config_eee_advert
+
+bcm_config_lre_aneg() doesn't use genphy_config_eee_advert() any longer.
+As this was the only user, we can remove genphy_config_eee_advert() now.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <florian.fainelli@broadcom.com>
+Link: https://patch.msgid.link/37da7f3e-b883-4c07-9881-b8c0516822b7@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phy_device.c | 23 -----------------------
+ include/linux/phy.h          |  1 -
+ 2 files changed, 24 deletions(-)
+
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index 563497a3274c18..bc24c9f2786b2d 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -2239,29 +2239,6 @@ static int genphy_c37_config_advert(struct phy_device *phydev)
+ 				  adv);
+ }
+ 
+-/**
+- * genphy_config_eee_advert - disable unwanted eee mode advertisement
+- * @phydev: target phy_device struct
+- *
+- * Description: Writes MDIO_AN_EEE_ADV after disabling unsupported energy
+- *   efficent ethernet modes. Returns 0 if the PHY's advertisement hasn't
+- *   changed, and 1 if it has changed.
+- */
+-int genphy_config_eee_advert(struct phy_device *phydev)
+-{
+-	int err;
+-
+-	/* Nothing to disable */
+-	if (!phydev->eee_broken_modes)
+-		return 0;
+-
+-	err = phy_modify_mmd_changed(phydev, MDIO_MMD_AN, MDIO_AN_EEE_ADV,
+-				     phydev->eee_broken_modes, 0);
+-	/* If the call failed, we assume that EEE is not supported */
+-	return err < 0 ? 0 : err;
+-}
+-EXPORT_SYMBOL(genphy_config_eee_advert);
+-
+ /**
+  * genphy_setup_forced - configures/forces speed/duplex from @phydev
+  * @phydev: target phy_device struct
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index bb09a5a128e13c..1e4127c495c0dd 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1885,7 +1885,6 @@ int genphy_read_abilities(struct phy_device *phydev);
+ int genphy_setup_forced(struct phy_device *phydev);
+ int genphy_restart_aneg(struct phy_device *phydev);
+ int genphy_check_and_restart_aneg(struct phy_device *phydev, bool restart);
+-int genphy_config_eee_advert(struct phy_device *phydev);
+ int __genphy_config_aneg(struct phy_device *phydev, bool changed);
+ int genphy_aneg_done(struct phy_device *phydev);
+ int genphy_update_link(struct phy_device *phydev);

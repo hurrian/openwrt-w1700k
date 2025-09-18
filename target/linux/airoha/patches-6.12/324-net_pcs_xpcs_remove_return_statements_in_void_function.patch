@@ -1,0 +1,48 @@
+From fd4056db7aee901677a3c62534b2d31b38678cb4 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:53:10 +0100
+Subject: [PATCH] net: pcs: xpcs: remove return statements in void function
+
+While using "return" when calling a void returning function inside a
+function that returns void doesn't cause a compiler warning, it looks
+weird. Convert the bunch of if() statements to a switch() and remove
+these return statements.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 89ceedc0f18b8c..7246a910728d13 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1140,13 +1140,20 @@ static void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ {
+ 	struct dw_xpcs *xpcs = phylink_pcs_to_xpcs(pcs);
+ 
+-	if (interface == PHY_INTERFACE_MODE_USXGMII)
+-		return xpcs_link_up_usxgmii(xpcs, speed);
++	switch (interface) {
++	case PHY_INTERFACE_MODE_USXGMII:
++		xpcs_link_up_usxgmii(xpcs, speed);
++		break;
++
++	case PHY_INTERFACE_MODE_SGMII:
++	case PHY_INTERFACE_MODE_1000BASEX:
++		xpcs_link_up_sgmii_1000basex(xpcs, neg_mode, interface, speed,
++					     duplex);
++		break;
+ 
+-	if (interface == PHY_INTERFACE_MODE_SGMII ||
+-	    interface == PHY_INTERFACE_MODE_1000BASEX)
+-		return xpcs_link_up_sgmii_1000basex(xpcs, neg_mode, interface,
+-						    speed, duplex);
++	default:
++		break;
++	}
+ }
+ 
+ static void xpcs_an_restart(struct phylink_pcs *pcs)

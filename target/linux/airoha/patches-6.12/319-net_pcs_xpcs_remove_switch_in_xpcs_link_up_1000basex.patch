@@ -1,0 +1,43 @@
+From 8d2aeab4ce782df9d7cd035938f4545af7db260e Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:52:44 +0100
+Subject: [PATCH] net: pcs: xpcs: remove switch() in xpcs_link_up_1000basex()
+
+Remove an unnecessary switch() statement in xpcs_link_up_1000basex().
+The only value this switch statement is interested in is SPEED_1000,
+all other values lead to an error. Replace this with a simple if()
+statement.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index a5e2d93db2854c..183df8f8c50fda 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1127,18 +1127,13 @@ static void xpcs_link_up_1000basex(struct dw_xpcs *xpcs, unsigned int neg_mode,
+ 	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED)
+ 		return;
+ 
+-	switch (speed) {
+-	case SPEED_1000:
+-		val = BMCR_SPEED1000;
+-		break;
+-	case SPEED_100:
+-	case SPEED_10:
+-	default:
+-		dev_err(&xpcs->mdiodev->dev, "%s: speed = %d\n",
++	if (speed != SPEED_1000) {
++		dev_err(&xpcs->mdiodev->dev, "%s: speed %dMbps not supported\n",
+ 			__func__, speed);
+ 		return;
+ 	}
+ 
++	val = BMCR_SPEED1000;
+ 	if (duplex == DUPLEX_FULL)
+ 		val |= BMCR_FULLDPLX;
+ 	else

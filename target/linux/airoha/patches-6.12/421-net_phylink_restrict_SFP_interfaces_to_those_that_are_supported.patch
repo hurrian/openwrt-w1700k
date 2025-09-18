@@ -1,0 +1,63 @@
+From ff1fce1bdd7b96b6e84518c277569dabbfb18c7d Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 2 Jul 2025 10:44:24 +0100
+Subject: [PATCH] net: phylink: restrict SFP interfaces to those that are
+ supported
+
+When configuring an optical SFP interface, restrict the bitmap of SFP
+interfaces (pl->sfp_interfaces) to those that are supported by the
+host, rather than calculating this in a local variable.
+
+This will allow us to avoid recomputing this in the
+phylink_ethtool_ksettings_set() path.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Tested-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1uWu0u-005KXc-A4@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 67218d278ce6ed..6420e76f8ab1a1 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3582,7 +3582,6 @@ static int phylink_sfp_config_phy(struct phylink *pl, struct phy_device *phy)
+ static int phylink_sfp_config_optical(struct phylink *pl)
+ {
+ 	__ETHTOOL_DECLARE_LINK_MODE_MASK(support);
+-	DECLARE_PHY_INTERFACE_MASK(interfaces);
+ 	struct phylink_link_state config;
+ 	phy_interface_t interface;
+ 	int ret;
+@@ -3596,9 +3595,9 @@ static int phylink_sfp_config_optical(struct phylink *pl)
+ 	/* Find the union of the supported interfaces by the PCS/MAC and
+ 	 * the SFP module.
+ 	 */
+-	phy_interface_and(interfaces, pl->config->supported_interfaces,
++	phy_interface_and(pl->sfp_interfaces, pl->config->supported_interfaces,
+ 			  pl->sfp_interfaces);
+-	if (phy_interface_empty(interfaces)) {
++	if (phy_interface_empty(pl->sfp_interfaces)) {
+ 		phylink_err(pl, "unsupported SFP module: no common interface modes\n");
+ 		return -EINVAL;
+ 	}
+@@ -3614,14 +3613,14 @@ static int phylink_sfp_config_optical(struct phylink *pl)
+ 	 * mask to only those link modes that can be supported.
+ 	 */
+ 	ret = phylink_validate_mask(pl, NULL, pl->sfp_support, &config,
+-				    interfaces);
++				    pl->sfp_interfaces);
+ 	if (ret) {
+ 		phylink_err(pl, "unsupported SFP module: validation with support %*pb failed\n",
+ 			    __ETHTOOL_LINK_MODE_MASK_NBITS, support);
+ 		return ret;
+ 	}
+ 
+-	interface = phylink_choose_sfp_interface(pl, interfaces);
++	interface = phylink_choose_sfp_interface(pl, pl->sfp_interfaces);
+ 	if (interface == PHY_INTERFACE_MODE_NA) {
+ 		phylink_err(pl, "failed to select SFP interface\n");
+ 		return -EINVAL;

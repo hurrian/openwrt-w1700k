@@ -1,0 +1,66 @@
+From c8be7018d47cfdf36ae6b5bedddca9fc99cd2f0b Mon Sep 17 00:00:00 2001
+From: "Dr. David Alan Gilbert" <linux@treblig.org>
+Date: Thu, 6 Mar 2025 18:45:34 +0000
+Subject: [PATCH] net: phylink: Remove unused phylink_init_eee
+
+phylink_init_eee() is currently unused.
+
+It was last added in 2019 by
+commit 86e58135bc4a ("net: phylink: add phylink_init_eee() helper")
+but it didn't actually wire a use up.
+
+It had previous been removed in 2017 by
+commit 939eae25d9a5 ("phylink: remove phylink_init_eee()").
+
+Remove it again.
+
+Signed-off-by: Dr. David Alan Gilbert <linux@treblig.org>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/20250306184534.246152-1-linux@treblig.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 18 ------------------
+ include/linux/phylink.h   |  1 -
+ 2 files changed, 19 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index a3f64b6d2d34ef..76b1a329607bb3 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3157,24 +3157,6 @@ int phylink_get_eee_err(struct phylink *pl)
+ }
+ EXPORT_SYMBOL_GPL(phylink_get_eee_err);
+ 
+-/**
+- * phylink_init_eee() - init and check the EEE features
+- * @pl: a pointer to a &struct phylink returned from phylink_create()
+- * @clk_stop_enable: allow PHY to stop receive clock
+- *
+- * Must be called either with RTNL held or within mac_link_up()
+- */
+-int phylink_init_eee(struct phylink *pl, bool clk_stop_enable)
+-{
+-	int ret = -EOPNOTSUPP;
+-
+-	if (pl->phydev)
+-		ret = phy_init_eee(pl->phydev, clk_stop_enable);
+-
+-	return ret;
+-}
+-EXPORT_SYMBOL_GPL(phylink_init_eee);
+-
+ /**
+  * phylink_ethtool_get_eee() - read the energy efficient ethernet parameters
+  * @pl: a pointer to a &struct phylink returned from phylink_create()
+diff --git a/include/linux/phylink.h b/include/linux/phylink.h
+index 08df65f6867a6a..c187267a15b6c4 100644
+--- a/include/linux/phylink.h
++++ b/include/linux/phylink.h
+@@ -714,7 +714,6 @@ void phylink_ethtool_get_pauseparam(struct phylink *,
+ int phylink_ethtool_set_pauseparam(struct phylink *,
+ 				   struct ethtool_pauseparam *);
+ int phylink_get_eee_err(struct phylink *);
+-int phylink_init_eee(struct phylink *, bool);
+ int phylink_ethtool_get_eee(struct phylink *link, struct ethtool_keee *eee);
+ int phylink_ethtool_set_eee(struct phylink *link, struct ethtool_keee *eee);
+ int phylink_mii_ioctl(struct phylink *, struct ifreq *, int);

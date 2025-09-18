@@ -1,0 +1,36 @@
+From b61a465a761921d11f99492ce41b85cfba7d6161 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 17 Oct 2024 12:52:49 +0100
+Subject: [PATCH] net: pcs: xpcs: rearrange xpcs_link_up_1000basex()
+
+Rearrange xpcs_link_up_1000basex() to make it more obvious what will
+happen in the following commit.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Tested-by: Serge Semin <fancer.lancer@gmail.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/pcs/pcs-xpcs.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 183df8f8c50fda..3222b8851bff44 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -1133,12 +1133,13 @@ static void xpcs_link_up_1000basex(struct dw_xpcs *xpcs, unsigned int neg_mode,
+ 		return;
+ 	}
+ 
++	if (duplex != DUPLEX_FULL)
++		dev_err(&xpcs->mdiodev->dev, "%s: half duplex not supported\n",
++			__func__);
++
+ 	val = BMCR_SPEED1000;
+ 	if (duplex == DUPLEX_FULL)
+ 		val |= BMCR_FULLDPLX;
+-	else
+-		dev_err(&xpcs->mdiodev->dev, "%s: half duplex not supported\n",
+-			__func__);
+ 
+ 	ret = xpcs_write(xpcs, MDIO_MMD_VEND2, MII_BMCR, val);
+ 	if (ret)

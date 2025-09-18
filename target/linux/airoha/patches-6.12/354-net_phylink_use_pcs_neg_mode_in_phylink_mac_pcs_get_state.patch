@@ -1,0 +1,64 @@
+From 0f1396d2465886b47d09b2b136922bb861996d01 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 13 Jan 2025 09:22:24 +0000
+Subject: [PATCH] net: phylink: use pcs_neg_mode in phylink_mac_pcs_get_state()
+
+As in-band AN no longer just depends on MLO_AN_INBAND + Autoneg bit,
+we need to take account of the pcs_neg_mode when deciding how to
+initialise the speed, duplex and pause state members before calling
+into the .pcs_neg_mode() method. Add this.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Tested-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1tXGeO-000Esx-0r@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 31754d5fd65903..31f2d8a8ff19d9 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -1492,12 +1492,24 @@ static int phylink_change_inband_advert(struct phylink *pl)
+ static void phylink_mac_pcs_get_state(struct phylink *pl,
+ 				      struct phylink_link_state *state)
+ {
++	struct phylink_pcs *pcs;
++	bool autoneg;
++
+ 	linkmode_copy(state->advertising, pl->link_config.advertising);
+ 	linkmode_zero(state->lp_advertising);
+ 	state->interface = pl->link_config.interface;
+ 	state->rate_matching = pl->link_config.rate_matching;
+-	if (linkmode_test_bit(ETHTOOL_LINK_MODE_Autoneg_BIT,
+-			      state->advertising)) {
++	state->an_complete = 0;
++	state->link = 1;
++
++	pcs = pl->pcs;
++	if (!pcs || pcs->neg_mode)
++		autoneg = pl->pcs_neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED;
++	else
++		autoneg = linkmode_test_bit(ETHTOOL_LINK_MODE_Autoneg_BIT,
++					    state->advertising);
++
++	if (autoneg) {
+ 		state->speed = SPEED_UNKNOWN;
+ 		state->duplex = DUPLEX_UNKNOWN;
+ 		state->pause = MLO_PAUSE_NONE;
+@@ -1506,11 +1518,9 @@ static void phylink_mac_pcs_get_state(struct phylink *pl,
+ 		state->duplex = pl->link_config.duplex;
+ 		state->pause = pl->link_config.pause;
+ 	}
+-	state->an_complete = 0;
+-	state->link = 1;
+ 
+-	if (pl->pcs)
+-		pl->pcs->ops->pcs_get_state(pl->pcs, state);
++	if (pcs)
++		pcs->ops->pcs_get_state(pcs, state);
+ 	else
+ 		state->link = 0;
+ }

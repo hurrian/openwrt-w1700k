@@ -1,0 +1,30 @@
+From 3ba0262a8fed29efe28e3ce3162d1794a58aa94f Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 15 Jan 2025 20:42:27 +0000
+Subject: [PATCH] net: mdio: add definition for clock stop capable bit
+
+Add a definition for the clock stop capable bit in the PCS MMD. This
+bit indicates whether the MAC is able to stop the transmit xMII clock
+while it is signalling LPI.
+
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Link: https://patch.msgid.link/E1tYADb-0014PV-6T@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ include/uapi/linux/mdio.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/uapi/linux/mdio.h b/include/uapi/linux/mdio.h
+index f0d3f268240d86..6975f182b22c60 100644
+--- a/include/uapi/linux/mdio.h
++++ b/include/uapi/linux/mdio.h
+@@ -125,6 +125,7 @@
+ #define MDIO_STAT1_LPOWERABLE		0x0002	/* Low-power ability */
+ #define MDIO_STAT1_LSTATUS		BMSR_LSTATUS
+ #define MDIO_STAT1_FAULT		0x0080	/* Fault */
++#define MDIO_PCS_STAT1_CLKSTOP_CAP	0x0040
+ #define MDIO_AN_STAT1_LPABLE		0x0001	/* Link partner AN ability */
+ #define MDIO_AN_STAT1_ABLE		BMSR_ANEGCAPABLE
+ #define MDIO_AN_STAT1_RFAULT		BMSR_RFAULT

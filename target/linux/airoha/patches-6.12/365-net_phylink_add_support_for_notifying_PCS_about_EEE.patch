@@ -1,0 +1,120 @@
+From e9f03a6a879bffea0ee51af87ac7a0c77716dda6 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 10 Feb 2025 10:53:39 +0000
+Subject: [PATCH] net: phylink: add support for notifying PCS about EEE
+
+There are hooks in the stmmac driver into XPCS to control the EEE
+settings when LPI is configured at the MAC. This bypasses the layering.
+To allow this to be removed from the stmmac driver, add two new
+methods for PCS to inform them when the LPI/EEE enablement state
+changes at the MAC.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/E1thRQ3-003w6u-RH@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 25 ++++++++++++++++++++++---
+ include/linux/phylink.h   | 22 ++++++++++++++++++++++
+ 2 files changed, 44 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 74693307dfbf91..046ec8dda15987 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -1073,6 +1073,18 @@ static void phylink_pcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 		pcs->ops->pcs_link_up(pcs, neg_mode, interface, speed, duplex);
+ }
+ 
++static void phylink_pcs_disable_eee(struct phylink_pcs *pcs)
++{
++	if (pcs && pcs->ops->pcs_disable_eee)
++		pcs->ops->pcs_disable_eee(pcs);
++}
++
++static void phylink_pcs_enable_eee(struct phylink_pcs *pcs)
++{
++	if (pcs && pcs->ops->pcs_enable_eee)
++		pcs->ops->pcs_enable_eee(pcs);
++}
++
+ /* Query inband for a specific interface mode, asking the MAC for the
+  * PCS which will be used to handle the interface mode.
+  */
+@@ -1601,6 +1613,8 @@ static void phylink_deactivate_lpi(struct phylink *pl)
+ 		phylink_dbg(pl, "disabling LPI\n");
+ 
+ 		pl->mac_ops->mac_disable_tx_lpi(pl->config);
++
++		phylink_pcs_disable_eee(pl->pcs);
+ 	}
+ }
+ 
+@@ -1617,13 +1631,18 @@ static void phylink_activate_lpi(struct phylink *pl)
+ 	phylink_dbg(pl, "LPI timer %uus, tx clock stop %u\n",
+ 		    pl->mac_tx_lpi_timer, pl->mac_tx_clk_stop);
+ 
++	phylink_pcs_enable_eee(pl->pcs);
++
+ 	err = pl->mac_ops->mac_enable_tx_lpi(pl->config, pl->mac_tx_lpi_timer,
+ 					     pl->mac_tx_clk_stop);
+-	if (!err)
+-		pl->mac_enable_tx_lpi = true;
+-	else
++	if (err) {
++		phylink_pcs_disable_eee(pl->pcs);
+ 		phylink_err(pl, "%ps() failed: %pe\n",
+ 			    pl->mac_ops->mac_enable_tx_lpi, ERR_PTR(err));
++		return;
++	}
++
++	pl->mac_enable_tx_lpi = true;
+ }
+ 
+ static void phylink_link_up(struct phylink *pl,
+diff --git a/include/linux/phylink.h b/include/linux/phylink.h
+index 0de78673172de7..41ab85e591ad6b 100644
+--- a/include/linux/phylink.h
++++ b/include/linux/phylink.h
+@@ -477,6 +477,10 @@ struct phylink_pcs {
+  * @pcs_an_restart: restart 802.3z BaseX autonegotiation.
+  * @pcs_link_up: program the PCS for the resolved link configuration
+  *               (where necessary).
++ * @pcs_disable_eee: optional notification to PCS that EEE has been disabled
++ *		     at the MAC.
++ * @pcs_enable_eee: optional notification to PCS that EEE will be enabled at
++ *		    the MAC.
+  * @pcs_pre_init: configure PCS components necessary for MAC hardware
+  *                initialization e.g. RX clock for stmmac.
+  */
+@@ -500,6 +504,8 @@ struct phylink_pcs_ops {
+ 	void (*pcs_an_restart)(struct phylink_pcs *pcs);
+ 	void (*pcs_link_up)(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 			    phy_interface_t interface, int speed, int duplex);
++	void (*pcs_disable_eee)(struct phylink_pcs *pcs);
++	void (*pcs_enable_eee)(struct phylink_pcs *pcs);
+ 	int (*pcs_pre_init)(struct phylink_pcs *pcs);
+ };
+ 
+@@ -625,6 +631,22 @@ void pcs_an_restart(struct phylink_pcs *pcs);
+ void pcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 		 phy_interface_t interface, int speed, int duplex);
+ 
++/**
++ * pcs_disable_eee() - Disable EEE at the PCS
++ * @pcs: a pointer to a &struct phylink_pcs
++ *
++ * Optional method informing the PCS that EEE has been disabled at the MAC.
++ */
++void pcs_disable_eee(struct phylink_pcs *pcs);
++
++/**
++ * pcs_enable_eee() - Enable EEE at the PCS
++ * @pcs: a pointer to a &struct phylink_pcs
++ *
++ * Optional method informing the PCS that EEE is about to be enabled at the MAC.
++ */
++void pcs_enable_eee(struct phylink_pcs *pcs);
++
+ /**
+  * pcs_pre_init() - Configure PCS components necessary for MAC initialization
+  * @pcs: a pointer to a &struct phylink_pcs.

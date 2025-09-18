@@ -1,0 +1,49 @@
+From 2410719cdd49d9b062e87dddaf5ec990edafc6e3 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 3 Jan 2025 11:16:56 +0000
+Subject: [PATCH] net: pcs: xpcs: make xpcs_get_interfaces() static
+
+xpcs_get_interfaces() should no longer be used outside of the XPCS
+code, so make it static.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/E1tTffk-007Roi-JM@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/pcs/pcs-xpcs.c   | 3 +--
+ include/linux/pcs/pcs-xpcs.h | 1 -
+ 2 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index cf41dc5e74e813..c06b66f40022f3 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -594,14 +594,13 @@ static unsigned int xpcs_inband_caps(struct phylink_pcs *pcs,
+ 	}
+ }
+ 
+-void xpcs_get_interfaces(struct dw_xpcs *xpcs, unsigned long *interfaces)
++static void xpcs_get_interfaces(struct dw_xpcs *xpcs, unsigned long *interfaces)
+ {
+ 	const struct dw_xpcs_compat *compat;
+ 
+ 	for (compat = xpcs->desc->compat; compat->supported; compat++)
+ 		__set_bit(compat->interface, interfaces);
+ }
+-EXPORT_SYMBOL_GPL(xpcs_get_interfaces);
+ 
+ int xpcs_config_eee(struct dw_xpcs *xpcs, int mult_fact_100ns, int enable)
+ {
+diff --git a/include/linux/pcs/pcs-xpcs.h b/include/linux/pcs/pcs-xpcs.h
+index b5b5d17998b828..733f4ddd2ef15f 100644
+--- a/include/linux/pcs/pcs-xpcs.h
++++ b/include/linux/pcs/pcs-xpcs.h
+@@ -50,7 +50,6 @@ struct dw_xpcs;
+ 
+ struct phylink_pcs *xpcs_to_phylink_pcs(struct dw_xpcs *xpcs);
+ int xpcs_get_an_mode(struct dw_xpcs *xpcs, phy_interface_t interface);
+-void xpcs_get_interfaces(struct dw_xpcs *xpcs, unsigned long *interfaces);
+ int xpcs_config_eee(struct dw_xpcs *xpcs, int mult_fact_100ns,
+ 		    int enable);
+ struct dw_xpcs *xpcs_create_mdiodev(struct mii_bus *bus, int addr);

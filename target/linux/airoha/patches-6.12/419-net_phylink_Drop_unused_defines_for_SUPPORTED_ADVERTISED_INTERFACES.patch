@@ -1,0 +1,41 @@
+From 2b06aa2bcfb4eee0c5dc882ff8936913b1e6d44f Mon Sep 17 00:00:00 2001
+From: Alexander Duyck <alexanderduyck@fb.com>
+Date: Sun, 27 Apr 2025 12:59:49 -0700
+Subject: [PATCH] net: phylink: Drop unused defines for
+ SUPPORTED/ADVERTISED_INTERFACES
+
+The defines for SUPPORTED_INTERFACES and ADVERTISED_INTERFACES both appear
+to be unused. I couldn't find anything that actually references them in the
+original diff that added them and it seems like they have persisted despite
+using deprecated defines that aren't supposed to be used as per the
+ethtool.h header that defines the bits they are composed of.
+
+Since they are unused, and not supposed to be used anymore I am just
+dropping the lines of code since they seem to just be occupying space.
+
+Signed-off-by: Alexander Duyck <alexanderduyck@fb.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/174578398922.1580647.9720643128205980455.stgit@ahduyck-xeon-server.home.arpa
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 1bdd5d8bb5b021..0faa3d97e06b94 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -24,13 +24,6 @@
+ #include "sfp.h"
+ #include "swphy.h"
+ 
+-#define SUPPORTED_INTERFACES \
+-	(SUPPORTED_TP | SUPPORTED_MII | SUPPORTED_FIBRE | \
+-	 SUPPORTED_BNC | SUPPORTED_AUI | SUPPORTED_Backplane)
+-#define ADVERTISED_INTERFACES \
+-	(ADVERTISED_TP | ADVERTISED_MII | ADVERTISED_FIBRE | \
+-	 ADVERTISED_BNC | ADVERTISED_AUI | ADVERTISED_Backplane)
+-
+ enum {
+ 	PHYLINK_DISABLE_STOPPED,
+ 	PHYLINK_DISABLE_LINK,

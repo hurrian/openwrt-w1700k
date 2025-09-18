@@ -1,0 +1,82 @@
+From 8bf47e4d7b87cbd6a69541643d3fa4003c99d95f Mon Sep 17 00:00:00 2001
+From: Oleksij Rempel <o.rempel@pengutronix.de>
+Date: Mon, 10 Feb 2025 09:23:57 +0100
+Subject: [PATCH] net: phy: Add support for driver-specific next update time
+
+Introduce the `phy_get_next_update_time` function to allow PHY drivers
+to dynamically determine the time (in jiffies) until the next state
+update event. This enables more flexible and adaptive polling intervals
+based on the link state or other conditions.
+
+Signed-off-by: Oleksij Rempel <o.rempel@pengutronix.de>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/20250210082358.200751-2-o.rempel@pengutronix.de
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phy.c | 21 ++++++++++++++++++++-
+ include/linux/phy.h   | 13 +++++++++++++
+ 2 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index d0c1718e2b16a3..347ad1b644978d 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1501,6 +1501,24 @@ void phy_free_interrupt(struct phy_device *phydev)
+ }
+ EXPORT_SYMBOL(phy_free_interrupt);
+ 
++/**
++ * phy_get_next_update_time - Determine the next PHY update time
++ * @phydev: Pointer to the phy_device structure
++ *
++ * This function queries the PHY driver to get the time for the next polling
++ * event. If the driver does not implement the callback, a default value is
++ * used.
++ *
++ * Return: The time for the next polling event in jiffies
++ */
++static unsigned int phy_get_next_update_time(struct phy_device *phydev)
++{
++	if (phydev->drv && phydev->drv->get_next_update_time)
++		return phydev->drv->get_next_update_time(phydev);
++
++	return PHY_STATE_TIME;
++}
++
+ enum phy_state_work {
+ 	PHY_STATE_WORK_NONE,
+ 	PHY_STATE_WORK_ANEG,
+@@ -1580,7 +1598,8 @@ static enum phy_state_work _phy_state_machine(struct phy_device *phydev)
+ 	 * called from phy_disconnect() synchronously.
+ 	 */
+ 	if (phy_polling_mode(phydev) && phy_is_started(phydev))
+-		phy_queue_state_machine(phydev, PHY_STATE_TIME);
++		phy_queue_state_machine(phydev,
++					phy_get_next_update_time(phydev));
+ 
+ 	return state_work;
+ }
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 83994b394d8e34..64982eba71d1ea 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1270,6 +1270,19 @@ struct phy_driver {
+ 	 */
+ 	int (*led_polarity_set)(struct phy_device *dev, int index,
+ 				unsigned long modes);
++
++	/**
++	 * @get_next_update_time: Get the time until the next update event
++	 * @dev: PHY device
++	 *
++	 * Callback to determine the time (in jiffies) until the next
++	 * update event for the PHY state  machine. Allows PHY drivers to
++	 * dynamically adjust polling intervals based on link state or other
++	 * conditions.
++	 *
++	 * Returns the time in jiffies until the next update event.
++	 */
++	unsigned int (*get_next_update_time)(struct phy_device *dev);
+ };
+ #define to_phy_driver(d) container_of_const(to_mdio_common_driver(d),		\
+ 				      struct phy_driver, mdiodrv)

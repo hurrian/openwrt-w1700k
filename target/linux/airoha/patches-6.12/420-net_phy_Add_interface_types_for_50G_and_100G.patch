@@ -1,0 +1,135 @@
+From bbb7d478d91ac4d5c288e226cc8744daf3820798 Mon Sep 17 00:00:00 2001
+From: Alexander Duyck <alexanderduyck@fb.com>
+Date: Wed, 18 Jun 2025 15:07:22 -0700
+Subject: [PATCH] net: phy: Add interface types for 50G and 100G
+
+Add support for 802.3cd based interface types 50GBASE-R and 100GBASE-P.
+This choice in naming is based on section 135 of the 802.3-2022 IEEE
+Standard.
+
+In addition it is adding support for what I am referring to as LAUI
+which is based on annex 135C of the IEEE Standard, and shares many
+similarities with the 25/50G consortium. The main difference between the
+two is that IEEE spec refers to LAUI as the AUI before the RS(544/514) FEC,
+whereas the 25/50G use this lane and frequency combination after going
+through RS(528/514), Base-R or no FEC at all.
+
+Signed-off-by: Alexander Duyck <alexanderduyck@fb.com>
+Link: https://patch.msgid.link/175028444205.625704.4191700324472974116.stgit@ahduyck-xeon-server.home.arpa
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-core.c |  3 +++
+ drivers/net/phy/phy_caps.c |  9 +++++++++
+ drivers/net/phy/phylink.c  | 13 +++++++++++++
+ include/linux/phy.h        | 12 ++++++++++++
+ 4 files changed, 37 insertions(+)
+
+diff --git a/drivers/net/phy/phy-core.c b/drivers/net/phy/phy-core.c
+index 27f1833563abe2..c480bb40fa7346 100644
+--- a/drivers/net/phy/phy-core.c
++++ b/drivers/net/phy/phy-core.c
+@@ -142,6 +142,9 @@ int phy_interface_num_ports(phy_interface_t interface)
+ 	case PHY_INTERFACE_MODE_RXAUI:
+ 	case PHY_INTERFACE_MODE_XAUI:
+ 	case PHY_INTERFACE_MODE_1000BASEKX:
++	case PHY_INTERFACE_MODE_50GBASER:
++	case PHY_INTERFACE_MODE_LAUI:
++	case PHY_INTERFACE_MODE_100GBASEP:
+ 		return 1;
+ 	case PHY_INTERFACE_MODE_QSGMII:
+ 	case PHY_INTERFACE_MODE_QUSGMII:
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index 38417e2886118c..d11ce1c7e712c5 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -351,6 +351,15 @@ unsigned long phy_caps_from_interface(phy_interface_t interface)
+ 		link_caps |= BIT(LINK_CAPA_40000FD);
+ 		break;
+ 
++	case PHY_INTERFACE_MODE_50GBASER:
++	case PHY_INTERFACE_MODE_LAUI:
++		link_caps |= BIT(LINK_CAPA_50000FD);
++		break;
++
++	case PHY_INTERFACE_MODE_100GBASEP:
++		link_caps |= BIT(LINK_CAPA_100000FD);
++		break;
++
+ 	case PHY_INTERFACE_MODE_INTERNAL:
+ 		link_caps |= LINK_CAPA_ALL;
+ 		break;
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 0faa3d97e06b94..67218d278ce6ed 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -127,6 +127,9 @@ do {									\
+ #endif
+ 
+ static const phy_interface_t phylink_sfp_interface_preference[] = {
++	PHY_INTERFACE_MODE_100GBASEP,
++	PHY_INTERFACE_MODE_50GBASER,
++	PHY_INTERFACE_MODE_LAUI,
+ 	PHY_INTERFACE_MODE_25GBASER,
+ 	PHY_INTERFACE_MODE_USXGMII,
+ 	PHY_INTERFACE_MODE_10GBASER,
+@@ -274,6 +277,13 @@ static int phylink_interface_max_speed(phy_interface_t interface)
+ 	case PHY_INTERFACE_MODE_XLGMII:
+ 		return SPEED_40000;
+ 
++	case PHY_INTERFACE_MODE_50GBASER:
++	case PHY_INTERFACE_MODE_LAUI:
++		return SPEED_50000;
++
++	case PHY_INTERFACE_MODE_100GBASEP:
++		return SPEED_100000;
++
+ 	case PHY_INTERFACE_MODE_INTERNAL:
+ 	case PHY_INTERFACE_MODE_NA:
+ 	case PHY_INTERFACE_MODE_MAX:
+@@ -798,6 +808,9 @@ static int phylink_parse_mode(struct phylink *pl,
+ 		case PHY_INTERFACE_MODE_10GKR:
+ 		case PHY_INTERFACE_MODE_10GBASER:
+ 		case PHY_INTERFACE_MODE_XLGMII:
++		case PHY_INTERFACE_MODE_50GBASER:
++		case PHY_INTERFACE_MODE_LAUI:
++		case PHY_INTERFACE_MODE_100GBASEP:
+ 			caps = ~(MAC_SYM_PAUSE | MAC_ASYM_PAUSE);
+ 			caps = phylink_get_capabilities(pl->link_config.interface, caps,
+ 							RATE_MATCH_NONE);
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index b037aab7b71dd0..74c1bcf64b3ce3 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -103,6 +103,9 @@ extern const int phy_basic_ports_array[3];
+  * @PHY_INTERFACE_MODE_QUSGMII: Quad Universal SGMII
+  * @PHY_INTERFACE_MODE_1000BASEKX: 1000Base-KX - with Clause 73 AN
+  * @PHY_INTERFACE_MODE_10G_QXGMII: 10G-QXGMII - 4 ports over 10G USXGMII
++ * @PHY_INTERFACE_MODE_50GBASER: 50GBase-R - with Clause 134 FEC
++ * @PHY_INTERFACE_MODE_LAUI: 50 Gigabit Attachment Unit Interface
++ * @PHY_INTERFACE_MODE_100GBASEP: 100GBase-P - with Clause 134 FEC
+  * @PHY_INTERFACE_MODE_MAX: Book keeping
+  *
+  * Describes the interface between the MAC and PHY.
+@@ -144,6 +147,9 @@ typedef enum {
+ 	PHY_INTERFACE_MODE_QUSGMII,
+ 	PHY_INTERFACE_MODE_1000BASEKX,
+ 	PHY_INTERFACE_MODE_10G_QXGMII,
++	PHY_INTERFACE_MODE_50GBASER,
++	PHY_INTERFACE_MODE_LAUI,
++	PHY_INTERFACE_MODE_100GBASEP,
+ 	PHY_INTERFACE_MODE_MAX,
+ } phy_interface_t;
+ 
+@@ -260,6 +266,12 @@ static inline const char *phy_modes(phy_interface_t interface)
+ 		return "qusgmii";
+ 	case PHY_INTERFACE_MODE_10G_QXGMII:
+ 		return "10g-qxgmii";
++	case PHY_INTERFACE_MODE_50GBASER:
++		return "50gbase-r";
++	case PHY_INTERFACE_MODE_LAUI:
++		return "laui";
++	case PHY_INTERFACE_MODE_100GBASEP:
++		return "100gbase-p";
+ 	default:
+ 		return "unknown";
+ 	}

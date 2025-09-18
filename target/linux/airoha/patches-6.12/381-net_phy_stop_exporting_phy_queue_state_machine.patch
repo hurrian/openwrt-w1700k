@@ -1,0 +1,49 @@
+From ef6249e37df5eac72bacdfe0a3000b08ae153146 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Thu, 13 Feb 2025 22:50:02 +0100
+Subject: [PATCH] net: phy: stop exporting phy_queue_state_machine
+
+phy_queue_state_machine() isn't used outside phy.c,
+so stop exporting it.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Reviewed-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Reviewed-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/16986d3d-7baf-4b02-a641-e2916d491264@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phy.c | 4 ++--
+ include/linux/phy.h   | 1 -
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 347ad1b644978d..29fb19bb712b0b 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -520,12 +520,12 @@ int __phy_hwtstamp_set(struct phy_device *phydev,
+  * @phydev: the phy_device struct
+  * @jiffies: Run the state machine after these jiffies
+  */
+-void phy_queue_state_machine(struct phy_device *phydev, unsigned long jiffies)
++static void phy_queue_state_machine(struct phy_device *phydev,
++				    unsigned long jiffies)
+ {
+ 	mod_delayed_work(system_power_efficient_wq, &phydev->state_queue,
+ 			 jiffies);
+ }
+-EXPORT_SYMBOL(phy_queue_state_machine);
+ 
+ /**
+  * phy_trigger_machine - Trigger the state machine to run now
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 104c0b48999197..2ab83d24a57334 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -2071,7 +2071,6 @@ int phy_drivers_register(struct phy_driver *new_driver, int n,
+ 			 struct module *owner);
+ void phy_error(struct phy_device *phydev);
+ void phy_state_machine(struct work_struct *work);
+-void phy_queue_state_machine(struct phy_device *phydev, unsigned long jiffies);
+ void phy_trigger_machine(struct phy_device *phydev);
+ void phy_mac_interrupt(struct phy_device *phydev);
+ void phy_start_machine(struct phy_device *phydev);

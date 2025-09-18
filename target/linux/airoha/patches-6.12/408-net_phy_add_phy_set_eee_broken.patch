@@ -1,0 +1,36 @@
+From ed623fb8e38e2a241da12864778ec9c9cf930c65 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Fri, 8 Nov 2024 08:07:10 +0100
+Subject: [PATCH] net: phy: add phy_set_eee_broken
+
+Add an accessor for eee_broken_modes, so that drivers
+don't have to deal with phylib internals.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Link: https://patch.msgid.link/0f8ee279-d40d-4489-a3b0-d993472d744a@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ include/linux/phy.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index a6622f873d0315..b8346db4272702 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1263,6 +1263,16 @@ void of_set_phy_eee_broken(struct phy_device *phydev);
+ void of_set_phy_timing_role(struct phy_device *phydev);
+ int phy_speed_down_core(struct phy_device *phydev);
+ 
++/**
++ * phy_set_eee_broken - Mark an EEE mode as broken so that it isn't advertised.
++ * @phydev: The phy_device struct
++ * @link_mode: The broken EEE mode
++ */
++static inline void phy_set_eee_broken(struct phy_device *phydev, u32 link_mode)
++{
++	linkmode_set_bit(link_mode, phydev->eee_broken_modes);
++}
++
+ /**
+  * phy_is_started - Convenience function to check whether PHY is started
+  * @phydev: The phy_device struct

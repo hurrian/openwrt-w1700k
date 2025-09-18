@@ -1,0 +1,76 @@
+From faefc9730d073e88a490e37b00e3e196b823abcb Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Tue, 1 Oct 2024 17:04:57 +0100
+Subject: [PATCH] net: pcs: xpcs: make xpcs_do_config() and xpcs_link_up()
+ internal
+
+As nothing outside pcs-xpcs.c calls neither xpcs_do_config() nor
+xpcs_link_up(), remove their exports and prototypes.
+
+Reviewed-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Link: https://patch.msgid.link/E1svfMv-005ZIv-2M@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/pcs/pcs-xpcs.c   | 11 +++++------
+ include/linux/pcs/pcs-xpcs.h |  4 ----
+ 2 files changed, 5 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index f25e7afdfdf50c..0a01c552f5910b 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -851,8 +851,9 @@ static int xpcs_config_2500basex(struct dw_xpcs *xpcs)
+ 	return xpcs_write(xpcs, MDIO_MMD_VEND2, DW_VR_MII_MMD_CTRL, ret);
+ }
+ 
+-int xpcs_do_config(struct dw_xpcs *xpcs, phy_interface_t interface,
+-		   const unsigned long *advertising, unsigned int neg_mode)
++static int xpcs_do_config(struct dw_xpcs *xpcs, phy_interface_t interface,
++			  const unsigned long *advertising,
++			  unsigned int neg_mode)
+ {
+ 	const struct dw_xpcs_compat *compat;
+ 	int ret;
+@@ -905,7 +906,6 @@ int xpcs_do_config(struct dw_xpcs *xpcs, phy_interface_t interface,
+ 
+ 	return 0;
+ }
+-EXPORT_SYMBOL_GPL(xpcs_do_config);
+ 
+ static int xpcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 		       phy_interface_t interface,
+@@ -1207,8 +1207,8 @@ static void xpcs_link_up_1000basex(struct dw_xpcs *xpcs, unsigned int neg_mode,
+ 		pr_err("%s: xpcs_write returned %pe\n", __func__, ERR_PTR(ret));
+ }
+ 
+-void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+-		  phy_interface_t interface, int speed, int duplex)
++static void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
++			 phy_interface_t interface, int speed, int duplex)
+ {
+ 	struct dw_xpcs *xpcs = phylink_pcs_to_xpcs(pcs);
+ 
+@@ -1219,7 +1219,6 @@ void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 	if (interface == PHY_INTERFACE_MODE_1000BASEX)
+ 		return xpcs_link_up_1000basex(xpcs, neg_mode, speed, duplex);
+ }
+-EXPORT_SYMBOL_GPL(xpcs_link_up);
+ 
+ static void xpcs_an_restart(struct phylink_pcs *pcs)
+ {
+diff --git a/include/linux/pcs/pcs-xpcs.h b/include/linux/pcs/pcs-xpcs.h
+index 758daabb76c7c2..abda475111d1c9 100644
+--- a/include/linux/pcs/pcs-xpcs.h
++++ b/include/linux/pcs/pcs-xpcs.h
+@@ -65,10 +65,6 @@ struct dw_xpcs {
+ };
+ 
+ int xpcs_get_an_mode(struct dw_xpcs *xpcs, phy_interface_t interface);
+-void xpcs_link_up(struct phylink_pcs *pcs, unsigned int neg_mode,
+-		  phy_interface_t interface, int speed, int duplex);
+-int xpcs_do_config(struct dw_xpcs *xpcs, phy_interface_t interface,
+-		   const unsigned long *advertising, unsigned int neg_mode);
+ void xpcs_get_interfaces(struct dw_xpcs *xpcs, unsigned long *interfaces);
+ int xpcs_config_eee(struct dw_xpcs *xpcs, int mult_fact_100ns,
+ 		    int enable);

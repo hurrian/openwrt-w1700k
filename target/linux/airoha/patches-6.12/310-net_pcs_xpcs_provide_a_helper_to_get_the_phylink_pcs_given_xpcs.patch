@@ -1,0 +1,60 @@
+From f042365a26b07006064c2cfa2293e16cad243b0d Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Fri, 4 Oct 2024 11:20:56 +0100
+Subject: [PATCH] net: pcs: xpcs: provide a helper to get the phylink pcs given
+ xpcs
+
+Provide a helper to provide the pointer to the phylink_pcs struct
+given a valid xpcs pointer. This will be necessary when we make
+struct dw_xpcs private to pcs-xpcs.c
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/stmicro/stmmac/dwmac-intel.c | 2 +-
+ drivers/net/pcs/pcs-xpcs.c                        | 6 ++++++
+ include/linux/pcs/pcs-xpcs.h                      | 1 +
+ 3 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-intel.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-intel.c
+index 83ad7c7935e31e..48acba5eb178e7 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-intel.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-intel.c
+@@ -451,7 +451,7 @@ static struct phylink_pcs *intel_mgbe_select_pcs(struct stmmac_priv *priv,
+ 	 * should always be an XPCS. The original code would always
+ 	 * return this if present.
+ 	 */
+-	return &priv->hw->xpcs->pcs;
++	return xpcs_to_phylink_pcs(priv->hw->xpcs);
+ }
+ 
+ static int intel_mgbe_common_data(struct pci_dev *pdev,
+diff --git a/drivers/net/pcs/pcs-xpcs.c b/drivers/net/pcs/pcs-xpcs.c
+index 8bde87ab971f6f..a7f6d56183a724 100644
+--- a/drivers/net/pcs/pcs-xpcs.c
++++ b/drivers/net/pcs/pcs-xpcs.c
+@@ -132,6 +132,12 @@ xpcs_find_compat(struct dw_xpcs *xpcs, phy_interface_t interface)
+ 	return NULL;
+ }
+ 
++struct phylink_pcs *xpcs_to_phylink_pcs(struct dw_xpcs *xpcs)
++{
++	return &xpcs->pcs;
++}
++EXPORT_SYMBOL_GPL(xpcs_to_phylink_pcs);
++
+ int xpcs_get_an_mode(struct dw_xpcs *xpcs, phy_interface_t interface)
+ {
+ 	const struct dw_xpcs_compat *compat;
+diff --git a/include/linux/pcs/pcs-xpcs.h b/include/linux/pcs/pcs-xpcs.h
+index abda475111d1c9..868515f3cc88e9 100644
+--- a/include/linux/pcs/pcs-xpcs.h
++++ b/include/linux/pcs/pcs-xpcs.h
+@@ -64,6 +64,7 @@ struct dw_xpcs {
+ 	bool need_reset;
+ };
+ 
++struct phylink_pcs *xpcs_to_phylink_pcs(struct dw_xpcs *xpcs);
+ int xpcs_get_an_mode(struct dw_xpcs *xpcs, phy_interface_t interface);
+ void xpcs_get_interfaces(struct dw_xpcs *xpcs, unsigned long *interfaces);
+ int xpcs_config_eee(struct dw_xpcs *xpcs, int mult_fact_100ns,

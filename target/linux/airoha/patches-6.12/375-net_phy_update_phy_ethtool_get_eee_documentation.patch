@@ -1,0 +1,37 @@
+From f899c594e138eda72804b16babbdeff92707d7b0 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Thu, 5 Dec 2024 10:42:15 +0000
+Subject: [PATCH] net: phy: update phy_ethtool_get_eee() documentation
+
+Update the phy_ethtool_get_eee() documentation to make it clear that
+all members of struct ethtool_keee are written by this function.
+
+keee.supported, keee.advertised, keee.lp_advertised and keee.eee_active
+are all written by genphy_c45_ethtool_get_eee().
+
+keee.tx_lpi_timer, keee.tx_lpi_enabled and keee.eee_enabled are all
+written by eeecfg_to_eee().
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/E1tJ9JH-006LIz-SO@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phy.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 4cf34425423714..e4b04cdaa99507 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1701,8 +1701,8 @@ EXPORT_SYMBOL(phy_get_eee_err);
+  * @phydev: target phy_device struct
+  * @data: ethtool_keee data
+  *
+- * Description: reports the Supported/Advertisement/LP Advertisement
+- * capabilities, etc.
++ * Description: get the current EEE settings, filling in all members of
++ * @data.
+  */
+ int phy_ethtool_get_eee(struct phy_device *phydev, struct ethtool_keee *data)
+ {

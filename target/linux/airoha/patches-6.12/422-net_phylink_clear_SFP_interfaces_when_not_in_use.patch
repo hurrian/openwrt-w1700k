@@ -1,0 +1,53 @@
+From b0fdff22d520bde77f3c7119b6999a08544129b6 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Wed, 2 Jul 2025 10:44:29 +0100
+Subject: [PATCH] net: phylink: clear SFP interfaces when not in use
+
+Clear the SFP interfaces bitmap when we're not using it - in other
+words, when a module is unplugged, or we're using a PHY on the
+module.
+
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Tested-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/E1uWu0z-005KXi-EM@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index 6420e76f8ab1a1..c92a878ab717ae 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -3536,6 +3536,8 @@ static int phylink_sfp_config_phy(struct phylink *pl, struct phy_device *phy)
+ 	struct phylink_link_state config;
+ 	int ret;
+ 
++	/* We're not using pl->sfp_interfaces, so clear it. */
++	phy_interface_zero(pl->sfp_interfaces);
+ 	linkmode_copy(support, phy->supported);
+ 
+ 	memset(&config, 0, sizeof(config));
+@@ -3673,6 +3675,13 @@ static int phylink_sfp_module_insert(void *upstream,
+ 	return phylink_sfp_config_optical(pl);
+ }
+ 
++static void phylink_sfp_module_remove(void *upstream)
++{
++	struct phylink *pl = upstream;
++
++	phy_interface_zero(pl->sfp_interfaces);
++}
++
+ static int phylink_sfp_module_start(void *upstream)
+ {
+ 	struct phylink *pl = upstream;
+@@ -3757,6 +3766,7 @@ static const struct sfp_upstream_ops sfp_phylink_ops = {
+ 	.attach = phylink_sfp_attach,
+ 	.detach = phylink_sfp_detach,
+ 	.module_insert = phylink_sfp_module_insert,
++	.module_remove = phylink_sfp_module_remove,
+ 	.module_start = phylink_sfp_module_start,
+ 	.module_stop = phylink_sfp_module_stop,
+ 	.link_up = phylink_sfp_link_up,

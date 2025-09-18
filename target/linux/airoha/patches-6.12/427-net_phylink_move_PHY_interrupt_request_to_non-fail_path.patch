@@ -1,0 +1,48 @@
+From 3bc32fd9db47a20f38b0783364fdb2f2f1c97220 Mon Sep 17 00:00:00 2001
+From: "Russell King (Oracle)" <rmk+kernel@armlinux.org.uk>
+Date: Mon, 1 Sep 2025 12:52:56 +0100
+Subject: [PATCH] net: phylink: move PHY interrupt request to non-fail path
+
+The blamed commit added code which could return an error after we
+requested the PHY interrupt. When we return an error, the caller
+will call phy_detach() which fails to free the interrupt.
+
+Rearrange the code such that failing operations happen before the
+interrupt is requested, thereby allowing phy_detach() to be used.
+
+Note that replacing phy_detach() with phy_disconnect() in these
+paths could lead to freeing an interrupt which was never requested.
+
+Fixes: 1942b1c6f687 ("net: phylink: make configuring clock-stop dependent on MAC support")
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/E1ut35k-00000001UEl-0iq6@rmk-PC.armlinux.org.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+---
+ drivers/net/phy/phylink.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/phy/phylink.c b/drivers/net/phy/phylink.c
+index f1b57e3fdf30c3..c7cb95aa80074a 100644
+--- a/drivers/net/phy/phylink.c
++++ b/drivers/net/phy/phylink.c
+@@ -2141,9 +2141,6 @@ static int phylink_bringup_phy(struct phylink *pl, struct phy_device *phy,
+ 		    __ETHTOOL_LINK_MODE_MASK_NBITS, pl->supported,
+ 		    __ETHTOOL_LINK_MODE_MASK_NBITS, phy->advertising);
+ 
+-	if (phy_interrupt_is_valid(phy))
+-		phy_request_interrupt(phy);
+-
+ 	if (pl->config->mac_managed_pm)
+ 		phy->mac_managed_pm = true;
+ 
+@@ -2160,6 +2157,9 @@ static int phylink_bringup_phy(struct phylink *pl, struct phy_device *phy,
+ 			ret = 0;
+ 	}
+ 
++	if (ret == 0 && phy_interrupt_is_valid(phy))
++		phy_request_interrupt(phy);
++
+ 	return ret;
+ }
+ 

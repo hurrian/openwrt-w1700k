@@ -1,0 +1,312 @@
+From 0d60fd50328a96a901b09ed653704ce7f41d15ce Mon Sep 17 00:00:00 2001
+From: Gerhard Engleder <gerhard@engleder-embedded.com>
+Date: Wed, 12 Mar 2025 21:30:07 +0100
+Subject: [PATCH] net: phy: Support speed selection for PHY loopback
+
+phy_loopback() leaves it to the PHY driver to select the speed of the
+loopback mode. Thus, the speed of the loopback mode depends on the PHY
+driver in use.
+
+Add support for speed selection to phy_loopback() to enable loopback
+with defined speeds. Ensure that link up is signaled if speed changes
+as speed is not allowed to change during link up. Link down and up is
+necessary for a new speed.
+
+Signed-off-by: Gerhard Engleder <gerhard@engleder-embedded.com>
+Link: https://patch.msgid.link/20250312203010.47429-3-gerhard@engleder-embedded.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/ethernet/engleder/tsnep_main.c    |  2 +-
+ .../net/ethernet/hisilicon/hns/hns_ethtool.c  |  4 +-
+ .../hisilicon/hns3/hns3pf/hclge_main.c        |  4 +-
+ .../hisilicon/hns3/hns3pf/hclge_mdio.c        |  2 +-
+ .../stmicro/stmmac/stmmac_selftests.c         |  8 +-
+ drivers/net/phy/phy.c                         | 87 +++++++++++++++++++
+ drivers/net/phy/phy_device.c                  | 35 --------
+ include/linux/phy.h                           |  2 +-
+ net/core/selftests.c                          |  4 +-
+ 9 files changed, 100 insertions(+), 48 deletions(-)
+
+diff --git a/drivers/net/ethernet/engleder/tsnep_main.c b/drivers/net/ethernet/engleder/tsnep_main.c
+index 3de4cb06e2668f..7a9fe0719f8cc0 100644
+--- a/drivers/net/ethernet/engleder/tsnep_main.c
++++ b/drivers/net/ethernet/engleder/tsnep_main.c
+@@ -223,7 +223,7 @@ static int tsnep_phy_loopback(struct tsnep_adapter *adapter, bool enable)
+ {
+ 	int retval;
+ 
+-	retval = phy_loopback(adapter->phydev, enable);
++	retval = phy_loopback(adapter->phydev, enable, 0);
+ 
+ 	/* PHY link state change is not signaled if loopback is enabled, it
+ 	 * would delay a working loopback anyway, let's ensure that loopback
+diff --git a/drivers/net/ethernet/hisilicon/hns/hns_ethtool.c b/drivers/net/ethernet/hisilicon/hns/hns_ethtool.c
+index 6c458f037262fd..60a586a951a021 100644
+--- a/drivers/net/ethernet/hisilicon/hns/hns_ethtool.c
++++ b/drivers/net/ethernet/hisilicon/hns/hns_ethtool.c
+@@ -266,9 +266,9 @@ static int hns_nic_config_phy_loopback(struct phy_device *phy_dev, u8 en)
+ 		if (err)
+ 			goto out;
+ 
+-		err = phy_loopback(phy_dev, true);
++		err = phy_loopback(phy_dev, true, 0);
+ 	} else {
+-		err = phy_loopback(phy_dev, false);
++		err = phy_loopback(phy_dev, false, 0);
+ 		if (err)
+ 			goto out;
+ 
+diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+index 8c736a069eeb49..92f9b8ec76d9fd 100644
+--- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -7875,7 +7875,7 @@ static int hclge_enable_phy_loopback(struct hclge_dev *hdev,
+ 	if (ret)
+ 		return ret;
+ 
+-	return phy_loopback(phydev, true);
++	return phy_loopback(phydev, true, 0);
+ }
+ 
+ static int hclge_disable_phy_loopback(struct hclge_dev *hdev,
+@@ -7883,7 +7883,7 @@ static int hclge_disable_phy_loopback(struct hclge_dev *hdev,
+ {
+ 	int ret;
+ 
+-	ret = phy_loopback(phydev, false);
++	ret = phy_loopback(phydev, false, 0);
+ 	if (ret)
+ 		return ret;
+ 
+diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+index 80079657afebe0..9a456ebf9b7cd3 100644
+--- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
++++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+@@ -258,7 +258,7 @@ void hclge_mac_start_phy(struct hclge_dev *hdev)
+ 	if (!phydev)
+ 		return;
+ 
+-	phy_loopback(phydev, false);
++	phy_loopback(phydev, false, 0);
+ 
+ 	phy_start(phydev);
+ }
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_selftests.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_selftests.c
+index 3ca1c2a816ff18..a01bc394d1ac46 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_selftests.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_selftests.c
+@@ -382,14 +382,14 @@ static int stmmac_test_phy_loopback(struct stmmac_priv *priv)
+ 	if (!priv->dev->phydev)
+ 		return -EOPNOTSUPP;
+ 
+-	ret = phy_loopback(priv->dev->phydev, true);
++	ret = phy_loopback(priv->dev->phydev, true, 0);
+ 	if (ret)
+ 		return ret;
+ 
+ 	attr.dst = priv->dev->dev_addr;
+ 	ret = __stmmac_test_loopback(priv, &attr);
+ 
+-	phy_loopback(priv->dev->phydev, false);
++	phy_loopback(priv->dev->phydev, false, 0);
+ 	return ret;
+ }
+ 
+@@ -1985,7 +1985,7 @@ void stmmac_selftest_run(struct net_device *dev,
+ 		case STMMAC_LOOPBACK_PHY:
+ 			ret = -EOPNOTSUPP;
+ 			if (dev->phydev)
+-				ret = phy_loopback(dev->phydev, true);
++				ret = phy_loopback(dev->phydev, true, 0);
+ 			if (!ret)
+ 				break;
+ 			fallthrough;
+@@ -2018,7 +2018,7 @@ void stmmac_selftest_run(struct net_device *dev,
+ 		case STMMAC_LOOPBACK_PHY:
+ 			ret = -EOPNOTSUPP;
+ 			if (dev->phydev)
+-				ret = phy_loopback(dev->phydev, false);
++				ret = phy_loopback(dev->phydev, false, 0);
+ 			if (!ret)
+ 				break;
+ 			fallthrough;
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 562acde8922494..13df28445f0201 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -1707,6 +1707,93 @@ void phy_mac_interrupt(struct phy_device *phydev)
+ }
+ EXPORT_SYMBOL(phy_mac_interrupt);
+ 
++/**
++ * phy_loopback - Configure loopback mode of PHY
++ * @phydev: target phy_device struct
++ * @enable: enable or disable loopback mode
++ * @speed: enable loopback mode with speed
++ *
++ * Configure loopback mode of PHY and signal link down and link up if speed is
++ * changing.
++ *
++ * Return: 0 on success, negative error code on failure.
++ */
++int phy_loopback(struct phy_device *phydev, bool enable, int speed)
++{
++	bool link_up = false;
++	int ret = 0;
++
++	if (!phydev->drv)
++		return -EIO;
++
++	mutex_lock(&phydev->lock);
++
++	if (enable && phydev->loopback_enabled) {
++		ret = -EBUSY;
++		goto out;
++	}
++
++	if (!enable && !phydev->loopback_enabled) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	if (enable) {
++		/*
++		 * Link up is signaled with a defined speed. If speed changes,
++		 * then first link down and after that link up needs to be
++		 * signaled.
++		 */
++		if (phydev->link && phydev->state == PHY_RUNNING) {
++			/* link is up and signaled */
++			if (speed && phydev->speed != speed) {
++				/* signal link down and up for new speed */
++				phydev->link = false;
++				phydev->state = PHY_NOLINK;
++				phy_link_down(phydev);
++
++				link_up = true;
++			}
++		} else {
++			/* link is not signaled */
++			if (speed) {
++				/* signal link up for new speed */
++				link_up = true;
++			}
++		}
++	}
++
++	if (phydev->drv->set_loopback)
++		ret = phydev->drv->set_loopback(phydev, enable, speed);
++	else
++		ret = genphy_loopback(phydev, enable, speed);
++
++	if (ret) {
++		if (enable) {
++			/* try to restore link if enabling loopback fails */
++			if (phydev->drv->set_loopback)
++				phydev->drv->set_loopback(phydev, false, 0);
++			else
++				genphy_loopback(phydev, false, 0);
++		}
++
++		goto out;
++	}
++
++	if (link_up) {
++		phydev->link = true;
++		phydev->state = PHY_RUNNING;
++		phy_link_up(phydev);
++	}
++
++	phydev->loopback_enabled = enable;
++
++out:
++	mutex_unlock(&phydev->lock);
++	return ret;
++}
++EXPORT_SYMBOL(phy_loopback);
++
+ /**
+  * phy_eee_tx_clock_stop_capable() - indicate whether the MAC can stop tx clock
+  * @phydev: target phy_device struct
+diff --git a/drivers/net/phy/phy_device.c b/drivers/net/phy/phy_device.c
+index 09864c9635ace4..675fbd22537879 100644
+--- a/drivers/net/phy/phy_device.c
++++ b/drivers/net/phy/phy_device.c
+@@ -2149,41 +2149,6 @@
+ }
+ EXPORT_SYMBOL(phy_resume);
+ 
+-int phy_loopback(struct phy_device *phydev, bool enable)
+-{
+-	int ret = 0;
+-
+-	if (!phydev->drv)
+-		return -EIO;
+-
+-	mutex_lock(&phydev->lock);
+-
+-	if (enable && phydev->loopback_enabled) {
+-		ret = -EBUSY;
+-		goto out;
+-	}
+-
+-	if (!enable && !phydev->loopback_enabled) {
+-		ret = -EINVAL;
+-		goto out;
+-	}
+-
+-	if (phydev->drv->set_loopback)
+-		ret = phydev->drv->set_loopback(phydev, enable, 0);
+-	else
+-		ret = genphy_loopback(phydev, enable, 0);
+-
+-	if (ret)
+-		goto out;
+-
+-	phydev->loopback_enabled = enable;
+-
+-out:
+-	mutex_unlock(&phydev->lock);
+-	return ret;
+-}
+-EXPORT_SYMBOL(phy_loopback);
+-
+ /**
+  * phy_reset_after_clk_enable - perform a PHY reset if needed
+  * @phydev: target phy_device struct
+
+diff --git a/include/linux/phy.h b/include/linux/phy.h
+index 1c05158e943885..60d3b8860ea260 100644
+--- a/include/linux/phy.h
++++ b/include/linux/phy.h
+@@ -1808,7 +1808,7 @@ int phy_init_hw(struct phy_device *phydev);
+ int phy_suspend(struct phy_device *phydev);
+ int phy_resume(struct phy_device *phydev);
+ int __phy_resume(struct phy_device *phydev);
+-int phy_loopback(struct phy_device *phydev, bool enable);
++int phy_loopback(struct phy_device *phydev, bool enable, int speed);
+ int phy_sfp_connect_phy(void *upstream, struct phy_device *phy);
+ void phy_sfp_disconnect_phy(void *upstream, struct phy_device *phy);
+ void phy_sfp_attach(void *upstream, struct sfp_bus *bus);
+diff --git a/net/core/selftests.c b/net/core/selftests.c
+index 8f801e6e3b91b4..e99ae983fca9bb 100644
+--- a/net/core/selftests.c
++++ b/net/core/selftests.c
+@@ -299,7 +299,7 @@ static int net_test_phy_loopback_enable(struct net_device *ndev)
+ 	if (!ndev->phydev)
+ 		return -EOPNOTSUPP;
+ 
+-	return phy_loopback(ndev->phydev, true);
++	return phy_loopback(ndev->phydev, true, 0);
+ }
+ 
+ static int net_test_phy_loopback_disable(struct net_device *ndev)
+@@ -307,7 +307,7 @@ static int net_test_phy_loopback_disable(struct net_device *ndev)
+ 	if (!ndev->phydev)
+ 		return -EOPNOTSUPP;
+ 
+-	return phy_loopback(ndev->phydev, false);
++	return phy_loopback(ndev->phydev, false, 0);
+ }
+ 
+ static int net_test_phy_loopback_udp(struct net_device *ndev)

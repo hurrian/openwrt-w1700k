@@ -1,0 +1,70 @@
+From 87b22ce312350170af5e970c5abfb2bb87e39964 Mon Sep 17 00:00:00 2001
+From: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Date: Fri, 7 Mar 2025 18:36:02 +0100
+Subject: [PATCH] net: phy: phy_caps: Introduce phy_caps_valid
+
+With the link_capabilities array, it's trivial to validate a given mask
+againts a <speed, duplex> tuple. Create a helper for that purpose, and
+use it to replace a phy_settings lookup in phy_check_valid();
+
+Signed-off-by: Maxime Chevallier <maxime.chevallier@bootlin.com>
+Link: https://patch.msgid.link/20250307173611.129125-6-maxime.chevallier@bootlin.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+---
+ drivers/net/phy/phy-caps.h |  1 +
+ drivers/net/phy/phy.c      |  2 +-
+ drivers/net/phy/phy_caps.c | 19 +++++++++++++++++++
+ 3 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/phy-caps.h b/drivers/net/phy/phy-caps.h
+index 1bef9cca62c563..1217686f1f9178 100644
+--- a/drivers/net/phy/phy-caps.h
++++ b/drivers/net/phy/phy-caps.h
+@@ -43,6 +43,7 @@ int phy_caps_init(void);
+ size_t phy_caps_speeds(unsigned int *speeds, size_t size,
+ 		       unsigned long *linkmodes);
+ void phy_caps_linkmode_max_speed(u32 max_speed, unsigned long *linkmodes);
++bool phy_caps_valid(int speed, int duplex, const unsigned long *linkmodes);
+ 
+ 
+ #endif /* __PHY_CAPS_H */
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 3128df03feda3e..8df37d221fba65 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -260,7 +260,7 @@ unsigned int phy_supported_speeds(struct phy_device *phy,
+  */
+ bool phy_check_valid(int speed, int duplex, unsigned long *features)
+ {
+-	return !!phy_lookup_setting(speed, duplex, features, true);
++	return phy_caps_valid(speed, duplex, features);
+ }
+ EXPORT_SYMBOL(phy_check_valid);
+ 
+diff --git a/drivers/net/phy/phy_caps.c b/drivers/net/phy/phy_caps.c
+index d43493884ff790..4ee8c25c8521ce 100644
+--- a/drivers/net/phy/phy_caps.c
++++ b/drivers/net/phy/phy_caps.c
+@@ -140,3 +140,22 @@ void phy_caps_linkmode_max_speed(u32 max_speed, unsigned long *linkmodes)
+ 		else
+ 			break;
+ }
++
++/**
++ * phy_caps_valid() - Validate a linkmodes set agains given speed and duplex
++ * @speed: input speed to validate
++ * @duplex: input duplex to validate. Passing DUPLEX_UNKNOWN is always not valid
++ * @linkmodes: The linkmodes to validate
++ *
++ * Returns: True if at least one of the linkmodes in @linkmodes can function at
++ *          the given speed and duplex, false otherwise.
++ */
++bool phy_caps_valid(int speed, int duplex, const unsigned long *linkmodes)
++{
++	int capa = speed_duplex_to_capa(speed, duplex);
++
++	if (capa < 0)
++		return false;
++
++	return linkmode_intersects(link_caps[capa].linkmodes, linkmodes);
++}
