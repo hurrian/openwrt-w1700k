@@ -1,0 +1,105 @@
+From: Ryan Chen <rchen14b@gmail.com>
+Date: Thu, 06 Mar 2026 12:00:00 -0600
+Subject: [PATCH 2/2] net: pcs: airoha: AN7581: add global digital reset for
+ USXGMII speed changes
+
+On the EN7581, when phylink renegotiates a new speed within the same
+USXGMII interface mode, only link_up() is called (not pcs_config()).
+The existing link_up() only resets the TXPCS, which is insufficient:
+the RX data path (RXPCS, FIFOs, PMA digital logic) remains configured
+for the previous speed and no traffic flows.
+
+Fix this by adding a global digital reset sequence to the AN7581
+link_up callback for USXGMII and 10GBASE-R interfaces. This asserts
+and deasserts all PCS/PMA reset lines (RXPCS, TXPCS, FIFOs, PMA)
+to reinitialize the entire data path for the new speed. PLL
+reconfiguration is not needed since USXGMII always runs at the same
+SERDES frequency regardless of negotiated speed.
+
+The reset sequence mirrors what an7581_pcs_phya_bringup() does during
+initial configuration, but omits the PLL setup which is
+speed-independent for USXGMII.
+
+Additionally, poll the PCS reset status register at the start of
+link_up() to ensure any ongoing reset from bringup() or a prior speed
+change has fully completed. During boot with cable already connected,
+USXGMII autoneg can trigger rapid speed transitions (e.g. 100M -> 10G)
+and link_up() may be called before the previous reset has settled.
+
+Signed-off-by: Ryan Chen <rchen14b@gmail.com>
+---
+ drivers/net/pcs/airoha/pcs-an7581.c | 62 ++++++++++++++++++++++++++++
+ 1 file changed, 62 insertions(+)
+
+Index: linux-6.12.74/drivers/net/pcs/airoha/pcs-an7581.c
+===================================================================
+--- linux-6.12.74.orig/drivers/net/pcs/airoha/pcs-an7581.c
++++ linux-6.12.74/drivers/net/pcs/airoha/pcs-an7581.c
+@@ -1363,6 +1363,34 @@ int an7581_pcs_bringup(struct airoha_pcs
+ 
+ void an7581_pcs_phya_link_up(struct airoha_pcs_priv *priv)
+ {
++	u32 rst_mask = AIROHA_PCS_PMA_SW_HSG_RXPCS_RST_N |
++		       AIROHA_PCS_PMA_SW_HSG_TXPCS_RST_N |
++		       AIROHA_PCS_PMA_SW_XFI_RXPCS_BIST_RST_N |
++		       AIROHA_PCS_PMA_SW_XFI_RXPCS_RST_N |
++		       AIROHA_PCS_PMA_SW_XFI_TXPCS_RST_N |
++		       AIROHA_PCS_PMA_SW_TX_FIFO_RST_N |
++		       AIROHA_PCS_PMA_SW_REF_RST_N |
++		       AIROHA_PCS_PMA_SW_ALLPCS_RST_N |
++		       AIROHA_PCS_PMA_SW_PMA_RST_N |
++		       AIROHA_PCS_PMA_SW_TX_RST_N |
++		       AIROHA_PCS_PMA_SW_RX_RST_N |
++		       AIROHA_PCS_PMA_SW_RX_FIFO_RST_N;
++	u32 val;
++	int i;
++
++	/* Wait for any ongoing PCS reset to complete before proceeding.
++	 * During boot with cable already connected, USXGMII autoneg may
++	 * trigger rapid speed transitions (e.g. 100M -> 10G). Ensure the
++	 * previous reset sequence from bringup() or a prior link_up() has
++	 * fully settled before starting a new one.
++	 */
++	for (i = 0; i < 50; i++) {
++		regmap_read(priv->xfi_pma, AIROHA_PCS_PMA_SW_RST_SET, &val);
++		if ((val & rst_mask) == rst_mask)
++			break;
++		usleep_range(1000, 2000);
++	}
++
+ 	/* Reset TXPCS on link up */
+ 	regmap_clear_bits(priv->xfi_pma, AIROHA_PCS_PMA_SW_RST_SET,
+ 			  AIROHA_PCS_PMA_SW_HSG_TXPCS_RST_N);
+@@ -1371,6 +1399,32 @@ void an7581_pcs_phya_link_up(struct airo
+ 
+ 	regmap_set_bits(priv->xfi_pma, AIROHA_PCS_PMA_SW_RST_SET,
+ 			AIROHA_PCS_PMA_SW_HSG_TXPCS_RST_N);
++
++	/* For USXGMII/10GBASER, perform a global digital reset to
++	 * reinitialize the data path for the new speed. Without this,
++	 * the RX/TX path remains configured for the previous speed
++	 * and no traffic flows after speed changes (e.g. 10G -> 2.5G).
++	 * PLL reconfiguration is not needed since USXGMII always runs
++	 * at the same SERDES frequency regardless of negotiated speed.
++	 */
++	if (priv->interface == PHY_INTERFACE_MODE_USXGMII ||
++	    priv->interface == PHY_INTERFACE_MODE_10GBASER) {
++		an7581_pcs_cdr_reset(priv, priv->interface, false);
++
++		/* Assert global reset (keep REF_RST_N high) */
++		regmap_update_bits(priv->xfi_pma, AIROHA_PCS_PMA_SW_RST_SET,
++				   rst_mask, AIROHA_PCS_PMA_SW_REF_RST_N);
++
++		usleep_range(100, 200);
++
++		/* Deassert global reset */
++		regmap_set_bits(priv->xfi_pma, AIROHA_PCS_PMA_SW_RST_SET,
++				rst_mask);
++
++		usleep_range(5000, 7000);
++
++		an7581_pcs_cdr_reset(priv, priv->interface, false);
++	}
+ }
+ 
+ static bool an7581_pcs_have_rx_signal(struct airoha_pcs_priv *priv)
