@@ -109,6 +109,20 @@ define Device/gemtek_w1700k-ubi
 endef
 TARGET_DEVICES += gemtek_w1700k-ubi
 
+define Device/gemtek_w1701k-ubi
+  DEVICE_VENDOR := Gemtek
+  DEVICE_MODEL := W1701K
+  DEVICE_VARIANT := UBI
+  DEVICE_ALT0_VENDOR := Quantum Fiber
+  DEVICE_ALT0_MODEL := W1701K
+  DEVICE_ALT0_VARIANT := UBI
+  DEVICE_DTS := an7581-w1701k-ubi
+  ARTIFACT/chainload-uboot.itb := an7581-chainloader gemtek_w1701k
+  $(Device/gemtek_17xx-common)
+  DEVICE_PACKAGES += kmod-phy-airoha-en8811h
+endef
+TARGET_DEVICES += gemtek_w1701k-ubi
+
 define Device/gemtek_xr1710g-ubi
   DEVICE_VENDOR := Gemtek
   DEVICE_MODEL := XR1710G
