@@ -44,7 +44,7 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 
 --- /dev/null
 +++ b/configs/an7581_w1700k_defconfig
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,109 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_AIROHA=y
 +CONFIG_AUTOBOOT_KEYED=y
@@ -88,9 +88,11 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 +CONFIG_CMD_FS_GENERIC=y
 +CONFIG_CMD_MTDPARTS=y
 +CONFIG_CMD_LOG=y
++CONFIG_CMD_PSTORE=y
++CONFIG_CMD_PSTORE_MEM_ADDR=0x86f80000
 +CONFIG_OF_UPSTREAM=y
 +CONFIG_ENV_OVERWRITE=y
-+CONFIG_ENV_IS_IN_MMC=y
++# CONFIG_ENV_IS_IN_MMC is not set
 +# CONFIG_ENV_IS_IN_MTD is not set
 +CONFIG_ENV_RELOC_GD_ENV_ADDR=y
 +CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
@@ -184,135 +186,13 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 +ubi_read_recovery=ubi check recovery && ubi read $initaddr recovery
 --- /dev/null
 +++ b/dts/upstream/src/arm64/airoha/an7581-w1700k-ubi.dts
-@@ -0,0 +1,131 @@
+@@ -0,0 +1,9 @@
 +// SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 +/dts-v1/;
 +
-+/* Bootloader installs ATF here */
-+/memreserve/ 0x80000000 0x200000;
-+
-+#include <dt-bindings/input/linux-event-codes.h>
-+#include <dt-bindings/gpio/gpio.h>
-+#include "en7581.dtsi"
++#include "an7581-gemtek-17xx.dtsi"
 +
 +/ {
 +	model = "Gemtek W1700K (UBI)";
 +	compatible = "gemtek,w1700k-ubi", "airoha,an7581", "airoha,en7581";
-+
-+	aliases {
-+		serial0 = &uart1;
-+	};
-+
-+	chosen {
-+		stdout-path = "serial0:115200n8";
-+		linux,usable-memory-range = <0x0 0x80200000 0x0 0x7fe00000>;
-+	};
-+
-+	memory@80000000 {
-+		device_type = "memory";
-+		reg = <0x0 0x80000000 0x2 0x00000000>;
-+	};
-+
-+	gpio-keys {
-+		compatible = "gpio-keys";
-+
-+		key-restart {
-+			label = "reset";
-+			gpios = <&en7581_pinctrl 0 GPIO_ACTIVE_LOW>;
-+			linux,code = <KEY_RESTART>;
-+		};
-+	};
-+
-+	gpio-leds {
-+		compatible = "gpio-leds";
-+
-+		led_status_green {
-+			label = "status:green";
-+			gpios = <&en7581_pinctrl 17 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
-+		};
-+
-+		led_status_blue {
-+			label = "status:blue";
-+			gpios = <&en7581_pinctrl 19 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
-+		};
-+
-+		led_status_red {
-+			label = "status:red";
-+			gpios = <&en7581_pinctrl 29 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
-+		};
-+
-+		led_status_white {
-+			label = "status:white";
-+			gpios = <&en7581_pinctrl 20 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
-+		};
-+	};
-+};
-+
-+&snfi {
-+	status = "okay";
-+};
-+
-+&spi_nand {
-+	partitions {
-+		compatible = "fixed-partitions";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		vendor@0 {
-+			label = "vendor";
-+			reg = <0x00000000 0x00600000>;
-+			read-only;
-+		};
-+
-+		chainloader@600000 {
-+			label = "chainloader";
-+			reg = <0x00600000 0x00100000>;
-+			read-only;
-+		};
-+
-+		ubi@700000 {
-+			label = "ubi";
-+			reg = <0x00700000 0x1f700000>;
-+		};
-+
-+		/* reserved for bad block table */
-+		reserved_bmt@1fe00000 {
-+			label = "reserved_bmt";
-+			reg = <0x1fe00000 0x00200000>;
-+			read-only;
-+		};
-+	};
-+};
-+
-+&en7581_pinctrl {
-+	gpio-ranges = <&en7581_pinctrl 0 13 47>;
-+
-+	pcie0_rst_pins: pcie0-rst-pins {
-+		conf {
-+			pins = "pcie_reset0";
-+			drive-open-drain = <1>;
-+		};
-+	};
-+};
-+
-+&pcie0 {
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&pcie0_rst_pins>;
-+	status = "okay";
-+};
-+
-+&i2c0 {
-+	status = "okay";
-+};
-+
-+&eth {
-+	status = "okay";
-+};
-+
-+&gdm1 {
-+	status = "okay";
 +};
