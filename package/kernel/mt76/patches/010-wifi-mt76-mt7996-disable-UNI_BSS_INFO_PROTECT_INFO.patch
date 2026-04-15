@@ -1,0 +1,128 @@
+From patchwork Wed Mar 25 17:17:23 2026
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Ryder Lee <ryder.lee@mediatek.com>
+X-Patchwork-Id: 14495557
+Return-Path: 
+ <linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org
+ [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3F07A109C04A
+	for <linux-mediatek@archiver.kernel.org>;
+ Wed, 25 Mar 2026 17:17:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:List-Subscribe:List-Help
+	:List-Post:List-Archive:List-Unsubscribe:List-Id:Content-Type:
+	Content-Transfer-Encoding:MIME-Version:Message-ID:Date:Subject:CC:To:From:
+	Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender
+	:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Owner;
+	bh=1NDzJA/0MjyusnuWKkzTQb8f5VjxX7ByPwK0ik1Pxfk=; b=Y77NU6UTdYua85CP6RbsKoV2wy
+	rZj2vTvYaZsIKnDiSJFSAX/RsHx+SO4stUSn4jOon6vtCGaw5GIB6H6drrRH8S5o3zeCKOsRWGLKT
+	PgkKgxtRTuqk+Q9eibX1jr0+2Dkdw0nh4lfMyYjFbrXWqMzOQ59afdhSAv4syPXNxPWMlgVe/O6rx
+	Ibu8i5HddzpIY0F7PF3Jq4Auy0n7LSg4Pe8yYKn4TFSBUfJdQ1k9v5kEVg/602cxIDe7cOQ6rXn+o
+	2vMDWVyDmZl6HJ3Az3pQoF+0QbkJ32lkkTyTQwVn4Fsf52XF/VNoiRJXzIocjp99ISNGvE9yYiYte
+	DbNpX6Ug==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1w5RrN-00000003yMx-2mCp;
+	Wed, 25 Mar 2026 17:17:37 +0000
+Received: from mailgw01.mediatek.com ([216.200.240.184])
+	by bombadil.infradead.org with esmtps (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1w5RrK-00000003yMW-3BRz
+	for linux-mediatek@lists.infradead.org;
+	Wed, 25 Mar 2026 17:17:35 +0000
+X-UUID: 8091b98c286e11f19e7563141e833ce8-20260325
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=mediatek.com; s=dk;
+	h=Content-Type:Content-Transfer-Encoding:MIME-Version:Message-ID:Date:Subject:CC:To:From;
+ bh=1NDzJA/0MjyusnuWKkzTQb8f5VjxX7ByPwK0ik1Pxfk=;
+	b=hKSqS6IZcSKZdrhW9adfyWPBGiOC2WIdBgSclQSA5SV/HvOXiACvQvh6R7FHv9YP8IUaWMytu5VpilEBLrpIkb/0XwPxGnX8NABdp5B/v3AHFx/rv7LOcIgc4DJn+/W1cKPSv/u9/5zWqZZYdShoOR/K9Wbxk84wDOqG2+SjLkw=;
+X-CID-P-RULE: Release_Ham
+X-CID-O-INFO: VERSION:1.3.12,REQID:441d176c-8aaa-49d7-aa09-30fbb98ad08d,IP:0,U
+	RL:0,TC:0,Content:0,EDM:0,RT:0,SF:0,FILE:0,BULK:0,RULE:Release_Ham,ACTION:
+	release,TS:0
+X-CID-META: VersionHash:e7bac3a,CLOUDID:57c3b08e-6df4-4a3d-a7a4-fbdc42d669ce,B
+	ulkID:nil,BulkQuantity:0,Recheck:0,SF:102|836|888|898,TC:-5,Content:0|15|5
+	0,EDM:-3,IP:nil,URL:0,File:130,RT:0,Bulk:nil,QS:nil,BEC:-1,COL:0,OSI:0,OSA
+	:0,AV:0,LES:1,SPR:NO,DKR:0,DKP:0,BRR:0,BRE:0,ARC:0
+X-CID-BVR: 2,SSN|SDN
+X-CID-BAS: 2,SSN|SDN,0,_
+X-CID-FACTOR: TF_CID_SPAM_SNR
+X-CID-RHF: D41D8CD98F00B204E9800998ECF8427E
+X-UUID: 8091b98c286e11f19e7563141e833ce8-20260325
+Received: from mtkmbs10n1.mediatek.inc [(172.21.101.34)] by
+ mailgw01.mediatek.com
+	(envelope-from <ryder.lee@mediatek.com>)
+	(musrelay.mediatek.com ESMTP with TLSv1.2 ECDHE-RSA-AES256-GCM-SHA384
+ 256/256)
+	with ESMTP id 232309920; Wed, 25 Mar 2026 10:17:29 -0700
+Received: from mtkmbs11n1.mediatek.inc (172.21.101.185) by
+ mtkmbs11n2.mediatek.inc (172.21.101.187) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.29; Thu, 26 Mar 2026 01:17:26 +0800
+Received: from mussdccf250.eus.mediatek.inc (10.73.250.250) by
+ mtkmbs11n1.mediatek.inc (172.21.101.73) with Microsoft SMTP Server id
+ 15.2.2562.29 via Frontend Transport; Thu, 26 Mar 2026 01:17:26 +0800
+From: Ryder Lee <ryder.lee@mediatek.com>
+To: Felix Fietkau <nbd@nbd.name>
+CC: <linux-mediatek@lists.infradead.org>, <linux-wireless@vger.kernel.org>,
+	Shayne Chen <shayne.chen@mediatek.com>, Ryder Lee <ryder.lee@mediatek.com>
+Subject: [PATCH v2] wifi: mt76: mt7996: disable UNI_BSS_INFO_PROTECT_INFO for
+ mt7996
+Date: Wed, 25 Mar 2026 10:17:23 -0700
+Message-ID: 
+ <6427326eb4e8f375c63379f7a0df7e2ae9d120a4.1774458901.git.ryder.lee@mediatek.com>
+X-Mailer: git-send-email 2.45.2
+MIME-Version: 1.0
+X-MTK: N
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.8.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260325_101734_806554_81186A19 
+X-CRM114-Status: UNSURE (   9.10  )
+X-CRM114-Notice: Please train this message.
+X-BeenThere: linux-mediatek@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: <linux-mediatek.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek@lists.infradead.org>
+List-Help: <mailto:linux-mediatek-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces@lists.infradead.org>
+Errors-To: 
+ linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org
+
+The current MT7996 firmware causes TX failure and need further
+investigation, so it is temporarily disabled.
+
+MT7992 and MT7990 are working normally.
+
+Signed-off-by: Ryder Lee <ryder.lee@mediatek.com>
+---
+v2 - add a comment to describe why this check is required.
+---
+ mt7996/mcu.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/mt7996/mcu.c b/mt7996/mcu.c
+index 16420375112d..ae068392b9dd 100644
+--- a/mt7996/mcu.c
++++ b/mt7996/mcu.c
+@@ -1281,6 +1281,10 @@ int mt7996_mcu_set_protection(struct mt7996_phy *phy, struct mt7996_vif_link *li
+ 		PROT_NONGF_STA	 = BIT(7),
+ 	};
+ 
++	/* The current firmware causes TX failure. Need further investigation */
++	if (is_mt7996(&dev->mt76))
++		return 0;
++
+ 	skb = __mt7996_mcu_alloc_bss_req(&dev->mt76, &link->mt76,
+ 					 MT7996_BSS_UPDATE_MAX_SIZE);
+ 	if (IS_ERR(skb))

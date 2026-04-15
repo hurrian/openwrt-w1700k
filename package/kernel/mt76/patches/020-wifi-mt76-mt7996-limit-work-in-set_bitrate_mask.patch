@@ -1,0 +1,129 @@
+From patchwork Wed Apr  8 14:50:58 2026
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: "Dylan E." <dylan.eskew@candelatech.com>
+X-Patchwork-Id: 14516273
+X-Patchwork-Delegate: nbd@nbd.name
+Received: from dispatch1-us1.ppe-hosted.com (dispatch1-us1.ppe-hosted.com
+ [148.163.129.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00D4B3B0ADF
+	for <linux-wireless@vger.kernel.org>; Wed,  8 Apr 2026 14:51:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org;
+ arc=none smtp.client-ip=148.163.129.49
+ARC-Seal: i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775659876; cv=none;
+ b=mVthRLeig1GiB+CBVJmPkxca7Y5AEscQj55NkThMrmfGROWpjf5tBKQ+3dOSg6kKMvaZt+feETLSETpI8bKU11MX0UhEhfC8YqxtbTsMtfrnedsF/1emF1DW6cOUk2nLp8lDCrP+nfDILlu38WMVU8LebCU+vpdcJ9dSCdz1zdA=
+ARC-Message-Signature: i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775659876; c=relaxed/simple;
+	bh=p6+WR1yRP1bBZ0J922wW9hnqgkIK9VdJ6RdpHjKvhlU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version;
+ b=YUXx8UW7pSalyWAnA7CA/qwfKHOmYctAUe3/JQ6ZEwocOj/v+d/t/LC6QOCr67leiL0GC6z7NQSRIGbRN+q9gYM5AYslnIwg807Cmg/1ZHZfCfSUyj6z2Y55n8NIFFQtaaO/BPdZ0HpeE0cjeG/nSWP6NzThwYeXIXcmXDw+byU=
+ARC-Authentication-Results: i=1; smtp.subspace.kernel.org;
+ dmarc=pass (p=none dis=none) header.from=candelatech.com;
+ spf=pass smtp.mailfrom=candelatech.com;
+ dkim=pass (1024-bit key) header.d=candelatech.com header.i=@candelatech.com
+ header.b=QX5ySKON; arc=none smtp.client-ip=148.163.129.49
+Authentication-Results: smtp.subspace.kernel.org;
+ dmarc=pass (p=none dis=none) header.from=candelatech.com
+Authentication-Results: smtp.subspace.kernel.org;
+ spf=pass smtp.mailfrom=candelatech.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=candelatech.com header.i=@candelatech.com
+ header.b="QX5ySKON"
+X-Virus-Scanned: Proofpoint Essentials engine
+Received: from mail3.candelatech.com (mail.candelatech.com [208.74.158.173])
+	by mx1-us1.ppe-hosted.com (PPE Hosted ESMTP Server) with ESMTP id
+ 7F3BFAC0070;
+	Wed,  8 Apr 2026 14:51:10 +0000 (UTC)
+Received: from pk3.candelatech.com (firewall.candelatech.com [50.251.239.81])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by mail3.candelatech.com (Postfix) with ESMTPSA id DBBEA13C2B0;
+	Wed,  8 Apr 2026 07:51:07 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail3.candelatech.com DBBEA13C2B0
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=candelatech.com;
+	s=default; t=1775659868;
+	bh=p6+WR1yRP1bBZ0J922wW9hnqgkIK9VdJ6RdpHjKvhlU=;
+	h=From:To:Cc:Subject:Date:From;
+	b=QX5ySKONDleBZsI0AI9lJrnt+fcJk32LJa/M3EAK2LVriQ31njxdvfnJDs4XdQmzF
+	 Umgofa4NIivj0FGlv5bgbq1FoMEPieUmXDpv5tBpb0ZIX6BQZnLzk9JoarlRhoLZXw
+	 2DfSUrdTXNbYoya/m3ELi9Wy3UWAOKJqAwDzQyRI=
+From: dylan.eskew@candelatech.com
+To: nbd@nbd.name,
+	lorenzo@kernel.org,
+	ryder.lee@mediatek.com
+Cc: linux-wireless@vger.kernel.org,
+	shayne.chen@mediatek.com,
+	sean.wang@mediatek.com,
+	Dylan Eskew <dylan.eskew@candelatech.com>
+Subject: [PATCH mt76 v2] wifi: mt76: mt7996: limit work in set_bitrate_mask
+Date: Wed,  8 Apr 2026 07:50:58 -0700
+Message-ID: <20260408145057.2356878-2-dylan.eskew@candelatech.com>
+X-Mailer: git-send-email 2.52.0
+Precedence: bulk
+X-Mailing-List: linux-wireless@vger.kernel.org
+List-Id: <linux-wireless.vger.kernel.org>
+List-Subscribe: <mailto:linux-wireless+subscribe@vger.kernel.org>
+List-Unsubscribe: <mailto:linux-wireless+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+X-MDID: 1775659871-kLMHfdP9ZwGg
+X-PPE-STACK: {"stack":"us5"}
+X-MDID-O: 
+ us5;ut7;1775659871;kLMHfdP9ZwGg;<dylan.eskew@candelatech.com>;f49eb8a899f4a60c9b856bf22a60d609
+X-PPE-TRUSTED: V=1;DIR=OUT;
+
+From: Dylan Eskew <dylan.eskew@candelatech.com>
+
+Calls to mt7996_set_bitrate_mask() would propagate work for all stations
+on the ieee80211_hw regardless of the vif specified in the call. To
+prevent unnecessary work in FW, limit setting the sta_rate to only the
+specified vif in mt7996_sta_rate_ctrl_update().
+
+Fixes: afff4325548f0 ("wifi: mt76: mt7996: Use proper link_id in link_sta_rc_update callback")
+Signed-off-by: Dylan Eskew <dylan.eskew@candelatech.com>
+Acked-by: Lorenzo Bianconi <lorenzo@kernel.org>
+---
+v2:
+  - Assign to correct tree
+  - Fix spelling error in commit message
+---
+ mt7996/main.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/mt7996/main.c b/mt7996/main.c
+index a8a6552d49f6..26b8c91db0a8 100644
+--- a/mt7996/main.c
++++ b/mt7996/main.c
+@@ -1959,7 +1959,11 @@ static void mt7996_sta_rate_ctrl_update(void *data, struct ieee80211_sta *sta)
+ {
+ 	struct mt7996_sta *msta = (struct mt7996_sta *)sta->drv_priv;
+ 	struct mt7996_sta_link *msta_link;
+-	u32 *changed = data;
++	struct mt7996_vif *mvif = data;
++	u32 changed = IEEE80211_RC_SUPP_RATES_CHANGED;
++
++	if (msta->vif != mvif)
++		return;
+ 
+ 	msta_link = rcu_dereference(msta->link[msta->deflink_id]);
+ 	if (msta_link)
+@@ -1972,7 +1976,6 @@ mt7996_set_bitrate_mask(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ {
+ 	struct mt7996_dev *dev = mt7996_hw_dev(hw);
+ 	struct mt7996_vif *mvif = (struct mt7996_vif *)vif->drv_priv;
+-	u32 changed = IEEE80211_RC_SUPP_RATES_CHANGED;
+ 
+ 	mvif->deflink.bitrate_mask = *mask;
+ 
+@@ -1985,7 +1988,7 @@ mt7996_set_bitrate_mask(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ 	 * then multiple MCS setting (MCS 4,5,6) is not supported.
+ 	 */
+ 	ieee80211_iterate_stations_atomic(hw, mt7996_sta_rate_ctrl_update,
+-					  &changed);
++					  mvif);
+ 	ieee80211_queue_work(hw, &dev->rc_work);
+ 
+ 	return 0;
