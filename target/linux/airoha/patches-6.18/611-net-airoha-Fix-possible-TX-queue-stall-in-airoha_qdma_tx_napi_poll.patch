@@ -1,0 +1,155 @@
+From patchwork Mon Apr 13 08:29:49 2026
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Lorenzo Bianconi <lorenzo@kernel.org>
+X-Patchwork-Id: 14522457
+Return-Path: 
+ <linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org
+ [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B9088EBFD17
+	for <linux-mediatek@archiver.kernel.org>;
+ Mon, 13 Apr 2026 08:30:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:List-Subscribe:List-Help
+	:List-Post:List-Archive:List-Unsubscribe:List-Id:Cc:To:Message-Id:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:From:
+	Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender
+	:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Owner;
+	bh=20iQrWAFXeXnfwivnBV87cuFIXv+5v5bRlJjFoST/xs=; b=NMn3UbYJ0+u5fNAJKcRVkLv7bc
+	94tGkJ9fW7iATP3Jcj3SiHcjUUqS5S0sJ1a08DHIm/PzMt3cS2YTl1fSSY6xb3h2MitZC2P5EAk4o
+	nd9YKbGr66BONmQDliRnUG4ZOI15a6CFJX1HvveXockElF48yzr8U2caj23b3a0gMEgFmsCQwxFYw
+	Jp9wUGdEQTmIK950ueQ8ddUuEgK/aJxPnVeOAVOSn2NMCxoTKVYaMw1bmVnJjzQR0WHQWiC6wmcys
+	sUdYFUXQlnFD4pqoDodezU6clQTn08V8NHHeht3OFErrXcymSuetGtFCStn07fv1/EUHkSB24D11N
+	Ps3oO8yA==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1wCCgM-0000000FGlj-1jF9;
+	Mon, 13 Apr 2026 08:30:10 +0000
+Received: from tor.source.kernel.org ([2600:3c04:e001:324:0:1991:8:25])
+	by bombadil.infradead.org with esmtps (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1wCCgK-0000000FGlW-0uqO;
+	Mon, 13 Apr 2026 08:30:08 +0000
+Received: from smtp.kernel.org (transwarp.subspace.kernel.org [100.75.92.58])
+	by tor.source.kernel.org (Postfix) with ESMTP id 63E5B60172;
+	Mon, 13 Apr 2026 08:30:07 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9525EC116C6;
+	Mon, 13 Apr 2026 08:30:06 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776069007;
+	bh=Zmf17Ef7V1/I9+tjQStHwQFn4sJYJNvogny1tDE3r9Y=;
+	h=From:Date:Subject:To:Cc:From;
+	b=PVuX+jD0WGBgtt9stuVLqQgyCRxVxnTKU6VCuQkugMknm9u76hJRSoTp//vGve1Nd
+	 wup09DPBMarQ20v2q9/H5/hcBF8VOWWpetWrTN4yLO6QP2S0GKEg/iLriBW8vwX3Uu
+	 IFxOj7hFmEPyVUpaxH3ozBV6jKrLfIEFD+uJekw/z9A+Bie58NMcORrWqudIrfNA39
+	 O3QlVCyKfAyRcD962bMFt9XwnvGyrFg+00LLJk9iq4QsY6L7P1aLG8v5X0pcssBBxe
+	 7OqfJDAljXkiubgKIOSlBjW3oSN6BCKXk2Xc79VF+o3eQOM6ww/P8omZYAH1RN5kHG
+	 tkRFS5cEHv8pw==
+From: Lorenzo Bianconi <lorenzo@kernel.org>
+Date: Mon, 13 Apr 2026 10:29:49 +0200
+Subject: [PATCH net] net: airoha: Fix possible TX queue stall in
+ airoha_qdma_tx_napi_poll()
+MIME-Version: 1.0
+Message-Id: <20260413-airoha-txq-potential-stall-v1-1-7830363b1543@kernel.org>
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/x3MSwqDMBAA0KvIrDsQY/z1KsXFEKd1ICSaDEUQ7
+ 97Q5du8Cwpn4QLP5oLMXymSYkX7aMBvFD+MslaDNXYwzoxIktNGqOeBe1KOKhSwKIWAtPbW952
+ ZHU9Qgz3zW85//oLICst9/wDuW38ccQAAAA==
+X-Change-ID: 20260407-airoha-txq-potential-stall-ad52c53094e8
+To: Andrew Lunn <andrew+netdev@lunn.ch>,
+ "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
+ Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
+ Lorenzo Bianconi <lorenzo@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org,
+ linux-mediatek@lists.infradead.org, netdev@vger.kernel.org
+X-Mailer: b4 0.14.3
+X-BeenThere: linux-mediatek@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: <linux-mediatek.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek@lists.infradead.org>
+List-Help: <mailto:linux-mediatek-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces@lists.infradead.org>
+Errors-To: 
+ linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org
+
+Since multiple net_device TX queues can share the same hw QDMA TX queue,
+there is no guarantee we have inflight packets queued in hw belonging to a
+net_device TX queue stopped in the xmit path because hw QDMA TX queue
+can be full. In this corner case the net_device TX queue will never be
+re-activated. In order to avoid any potential net_device TX queue stall,
+we need to wake all the net_device TX queues feeding the same hw QDMA TX
+queue in airoha_qdma_tx_napi_poll routine.
+
+Fixes: 23020f0493270 ("net: airoha: Introduce ethernet support for EN7581 SoC")
+Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
+---
+ drivers/net/ethernet/airoha/airoha_eth.c | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
+
+
+---
+base-commit: 2dddb34dd0d07b01fa770eca89480a4da4f13153
+change-id: 20260407-airoha-txq-potential-stall-ad52c53094e8
+
+Best regards,
+
+diff --git a/drivers/net/ethernet/airoha/airoha_eth.c b/drivers/net/ethernet/airoha/airoha_eth.c
+index 9e995094c32a..e7610f36b8e4 100644
+--- a/drivers/net/ethernet/airoha/airoha_eth.c
++++ b/drivers/net/ethernet/airoha/airoha_eth.c
+@@ -855,6 +855,19 @@ static int airoha_qdma_init_rx(struct airoha_qdma *qdma)
+ 	return 0;
+ }
+ 
++static void airoha_qdma_wake_tx_queues(struct airoha_qdma *qdma)
++{
++	struct airoha_eth *eth = qdma->eth;
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(eth->ports); i++) {
++		struct airoha_gdm_port *port = eth->ports[i];
++
++		if (port && port->qdma == qdma)
++			netif_tx_wake_all_queues(port->dev);
++	}
++}
++
+ static int airoha_qdma_tx_napi_poll(struct napi_struct *napi, int budget)
+ {
+ 	struct airoha_tx_irq_queue *irq_q;
+@@ -931,12 +944,21 @@ static int airoha_qdma_tx_napi_poll(struct napi_struct *napi, int budget)
+ 
+ 			txq = netdev_get_tx_queue(skb->dev, queue);
+ 			netdev_tx_completed_queue(txq, 1, skb->len);
+-			if (netif_tx_queue_stopped(txq) &&
+-			    q->ndesc - q->queued >= q->free_thr)
+-				netif_tx_wake_queue(txq);
+-
+ 			dev_kfree_skb_any(skb);
+ 		}
++
++		if (q->ndesc - q->queued == q->free_thr) {
++			/* Since multiple net_device TX queues can share the
++			 * same hw QDMA TX queue, there is no guarantee we have
++			 * inflight packets queued in hw belonging to a
++			 * net_device TX queue stopped in the xmit path.
++			 * In order to avoid any potential net_device TX queue
++			 * stall, we need to wake all the net_device TX queues
++			 * feeding the same hw QDMA TX queue.
++			 */
++			airoha_qdma_wake_tx_queues(qdma);
++		}
++
+ unlock:
+ 		spin_unlock_bh(&q->lock);
+ 	}

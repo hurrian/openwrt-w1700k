@@ -1,0 +1,199 @@
+From patchwork Tue Apr 14 06:50:52 2026
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Lorenzo Bianconi <lorenzo@kernel.org>
+X-Patchwork-Id: 14523915
+Return-Path: 
+ <linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org
+ [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0FD7BF531F1
+	for <linux-mediatek@archiver.kernel.org>;
+ Tue, 14 Apr 2026 06:51:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:List-Subscribe:List-Help
+	:List-Post:List-Archive:List-Unsubscribe:List-Id:Cc:To:Message-Id:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:From:
+	Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender
+	:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Owner;
+	bh=mFcskcNPjj+if0QeGUzgLxPT9AMobbo/E+QtnQWUyAo=; b=ZeMXRi1KcN/TNDcywwUK8JLIqg
+	y23Bx2xZkZ5m9eEttFKBKYgYlFzC3Ku9/ak4XAU3UKsZGwwGTGseXEk8OvhxJxoDEh/k2L/f0db4c
+	BNLk2lkiv7giovM1zySi5MsvuzrRuDSjkD22MnHtIHd07Q+xDaKosV3to1ukQyoyy2Lz5/r/Lp8F2
+	3wQ9aNwJxVVc2m0/m1yReF1rrdRtCe6ghXH9uQAbR6IufjjKnkgYaj4qE/M/Xi7lMJId38aDWghq6
+	6cBRxwz1l2mUvnIYrnJrTjxBRLTbs0Mt8H4CfNmDjY6yk65hidWIdi4UV1xZlpygf96HTAmTJ3SVM
+	goh/v+PQ==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1wCXc4-0000000GrkE-0RbH;
+	Tue, 14 Apr 2026 06:51:08 +0000
+Received: from tor.source.kernel.org ([172.105.4.254])
+	by bombadil.infradead.org with esmtps (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1wCXc1-0000000Grjd-3NNU;
+	Tue, 14 Apr 2026 06:51:05 +0000
+Received: from smtp.kernel.org (transwarp.subspace.kernel.org [100.75.92.58])
+	by tor.source.kernel.org (Postfix) with ESMTP id 4103A60126;
+	Tue, 14 Apr 2026 06:51:05 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6FD8EC19425;
+	Tue, 14 Apr 2026 06:51:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1776149465;
+	bh=HZPV2FvJj6UhRn6Km5MahgpIDMpyNJ7h1uzc2GBuNik=;
+	h=From:Date:Subject:To:Cc:From;
+	b=tvZUHNW6QwYV21WEXKJLZ3MqI+TIicgCniMqgtVY0ou5dJL2snWpFw3cNucFcF66M
+	 gxa6sIw2keT+r1zwKWLiMltTMuFA+9tsbOZXz3Mz14zdhQjvBPjqxsmuJP3wkHCbCJ
+	 I/9A41HV0c9ij3CN44cpXxa2YVN6MCVky/VcJfpOV6W1wwMeq1/3cb/gJHBLUoRDn5
+	 8IhyClnaRQ3nueHqNvjAsJNT02dSBHlzH9GP5yFwKgKfvdg63lAYcSzN5SPjKhiP41
+	 e/1BRjYsOuRsqkxGiO3eNMnkCoc4OY9NCdl0F2YoOmv9OoKqX1q4xyB3iEX4OyZ5+I
+	 iFl7/UuUubGQw==
+From: Lorenzo Bianconi <lorenzo@kernel.org>
+Date: Tue, 14 Apr 2026 08:50:52 +0200
+Subject: [PATCH net v2] net: airoha: Add missing bits in
+ airoha_qdma_cleanup_tx_queue()
+MIME-Version: 1.0
+Message-Id: 
+ <20260414-airoha_qdma_cleanup_tx_queue-fix-net-v2-1-875de57cc022@kernel.org>
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/5WNQQ6CMBREr0L+2pp+EIuuvIchTYVfaMQWWiAY0
+ rvbcAOXb2Yyb4dA3lCAe7aDp9UE42yC/JRB0yvbETNtYsh5fuUX5EwZ73olp/ajZDOQssso501
+ OCy3EtNmYpZndikKUuiSquIZ0NXpK1aF5QhpAncLehNn576Fe8aj+s6zIkL0ECmwqjSSqx5u8p
+ eHsfAd1jPEHqO0DYN4AAAA=
+X-Change-ID: 20260410-airoha_qdma_cleanup_tx_queue-fix-net-93375f5ee80f
+To: Andrew Lunn <andrew+netdev@lunn.ch>,
+ "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
+ Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
+ Lorenzo Bianconi <lorenzo@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org,
+ linux-mediatek@lists.infradead.org, netdev@vger.kernel.org
+X-Mailer: b4 0.14.3
+X-BeenThere: linux-mediatek@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: <linux-mediatek.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-mediatek/>
+List-Post: <mailto:linux-mediatek@lists.infradead.org>
+List-Help: <mailto:linux-mediatek-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-mediatek>,
+ <mailto:linux-mediatek-request@lists.infradead.org?subject=subscribe>
+Sender: "Linux-mediatek" <linux-mediatek-bounces@lists.infradead.org>
+Errors-To: 
+ linux-mediatek-bounces+linux-mediatek=archiver.kernel.org@lists.infradead.org
+
+Similar to airoha_qdma_cleanup_rx_queue(), reset DMA TX descriptors in
+airoha_qdma_cleanup_tx_queue routine. Moreover, reset TX_DMA_IDX to
+TX_CPU_IDX to notify the NIC the QDMA TX ring is empty.
+
+Fixes: 23020f0493270 ("net: airoha: Introduce ethernet support for EN7581 SoC")
+Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
+---
+Changes in v2:
+- Move q->ndesc initialization at end of airoha_qdma_init_tx routine in
+  order to avoid any possible NULL pointer dereference in
+  airoha_qdma_cleanup_tx_queue()
+- Check if q->tx_list is empty in airoha_qdma_cleanup_tx_queue()
+- Link to v1: https://lore.kernel.org/r/20260410-airoha_qdma_cleanup_tx_queue-fix-net-v1-1-b7171c8f1e78@kernel.org
+---
+ drivers/net/ethernet/airoha/airoha_eth.c | 41 ++++++++++++++++++++++++++------
+ 1 file changed, 34 insertions(+), 7 deletions(-)
+
+
+---
+base-commit: 2cd7e6971fc2787408ceef17906ea152791448cf
+change-id: 20260410-airoha_qdma_cleanup_tx_queue-fix-net-93375f5ee80f
+
+Best regards,
+
+diff --git a/drivers/net/ethernet/airoha/airoha_eth.c b/drivers/net/ethernet/airoha/airoha_eth.c
+index 9e995094c32a..3c1a2bc68c42 100644
+--- a/drivers/net/ethernet/airoha/airoha_eth.c
++++ b/drivers/net/ethernet/airoha/airoha_eth.c
+@@ -966,27 +966,27 @@ static int airoha_qdma_init_tx_queue(struct airoha_queue *q,
+ 	dma_addr_t dma_addr;
+ 
+ 	spin_lock_init(&q->lock);
+-	q->ndesc = size;
+ 	q->qdma = qdma;
+ 	q->free_thr = 1 + MAX_SKB_FRAGS;
+ 	INIT_LIST_HEAD(&q->tx_list);
+ 
+-	q->entry = devm_kzalloc(eth->dev, q->ndesc * sizeof(*q->entry),
++	q->entry = devm_kzalloc(eth->dev, size * sizeof(*q->entry),
+ 				GFP_KERNEL);
+ 	if (!q->entry)
+ 		return -ENOMEM;
+ 
+-	q->desc = dmam_alloc_coherent(eth->dev, q->ndesc * sizeof(*q->desc),
++	q->desc = dmam_alloc_coherent(eth->dev, size * sizeof(*q->desc),
+ 				      &dma_addr, GFP_KERNEL);
+ 	if (!q->desc)
+ 		return -ENOMEM;
+ 
+-	for (i = 0; i < q->ndesc; i++) {
++	for (i = 0; i < size; i++) {
+ 		u32 val = FIELD_PREP(QDMA_DESC_DONE_MASK, 1);
+ 
+ 		list_add_tail(&q->entry[i].list, &q->tx_list);
+ 		WRITE_ONCE(q->desc[i].ctrl, cpu_to_le32(val));
+ 	}
++	q->ndesc = size;
+ 
+ 	/* xmit ring drop default setting */
+ 	airoha_qdma_set(qdma, REG_TX_RING_BLOCKING(qid),
+@@ -1051,13 +1051,17 @@ static int airoha_qdma_init_tx(struct airoha_qdma *qdma)
+ 
+ static void airoha_qdma_cleanup_tx_queue(struct airoha_queue *q)
+ {
+-	struct airoha_eth *eth = q->qdma->eth;
+-	int i;
++	struct airoha_qdma *qdma = q->qdma;
++	struct airoha_eth *eth = qdma->eth;
++	int i, qid = q - &qdma->q_tx[0];
++	struct airoha_queue_entry *e;
++	u16 index = 0;
+ 
+ 	spin_lock_bh(&q->lock);
+ 	for (i = 0; i < q->ndesc; i++) {
+-		struct airoha_queue_entry *e = &q->entry[i];
++		struct airoha_qdma_desc *desc = &q->desc[i];
+ 
++		e = &q->entry[i];
+ 		if (!e->dma_addr)
+ 			continue;
+ 
+@@ -1067,8 +1071,31 @@ static void airoha_qdma_cleanup_tx_queue(struct airoha_queue *q)
+ 		e->dma_addr = 0;
+ 		e->skb = NULL;
+ 		list_add_tail(&e->list, &q->tx_list);
++
++		/* Reset DMA descriptor */
++		WRITE_ONCE(desc->ctrl, 0);
++		WRITE_ONCE(desc->addr, 0);
++		WRITE_ONCE(desc->data, 0);
++		WRITE_ONCE(desc->msg0, 0);
++		WRITE_ONCE(desc->msg1, 0);
++		WRITE_ONCE(desc->msg2, 0);
++
+ 		q->queued--;
+ 	}
++
++	if (!list_empty(&q->tx_list)) {
++		e = list_first_entry(&q->tx_list, struct airoha_queue_entry,
++				     list);
++		index = e - q->entry;
++	}
++	/* Set TX_DMA_IDX to TX_CPU_IDX to notify the hw the QDMA TX ring is
++	 * empty.
++	 */
++	airoha_qdma_rmw(qdma, REG_TX_CPU_IDX(qid), TX_RING_CPU_IDX_MASK,
++			FIELD_PREP(TX_RING_CPU_IDX_MASK, index));
++	airoha_qdma_rmw(qdma, REG_TX_DMA_IDX(qid), TX_RING_DMA_IDX_MASK,
++			FIELD_PREP(TX_RING_DMA_IDX_MASK, index));
++
+ 	spin_unlock_bh(&q->lock);
+ }
+ 
