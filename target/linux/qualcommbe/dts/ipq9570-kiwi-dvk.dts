@@ -176,9 +176,12 @@
 	pinctrl-0 = <&pcie0_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 23 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 24 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
+
+&pcie0_port0 {
+	reset-gpios = <&tlmm 23 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 24 GPIO_ACTIVE_LOW>;
 };
 
 &pcie0_phy {
@@ -189,9 +192,12 @@
 	pinctrl-0 = <&pcie1_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
+
+&pcie1_port0 {
+	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
 };
 
 &pcie1_phy {
@@ -202,9 +208,12 @@
 	pinctrl-0 = <&pcie2_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
+
+&pcie2_port0 {
+	reset-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
 };
 
 &pcie2_phy {
@@ -215,9 +224,12 @@
 	pinctrl-0 = <&pcie3_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
+
+&pcie3_port0 {
+	reset-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
 };
 
 &pcie3_phy {

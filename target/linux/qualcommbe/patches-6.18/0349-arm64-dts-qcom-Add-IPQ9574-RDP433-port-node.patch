@@ -19,8 +19,8 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
 +++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-@@ -55,6 +55,46 @@
- 	status = "okay";
+@@ -64,6 +64,46 @@
+ 	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
  };
  
 +&mdio {
@@ -66,7 +66,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  &tlmm {
  
  	pcie1_default: pcie1-default-state {
-@@ -129,3 +169,130 @@
+@@ -138,3 +178,130 @@
  		};
  	};
  };

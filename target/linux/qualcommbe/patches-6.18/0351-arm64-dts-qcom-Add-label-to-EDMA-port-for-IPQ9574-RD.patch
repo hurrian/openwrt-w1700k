@@ -12,7 +12,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
 +++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-@@ -185,6 +185,7 @@
+@@ -194,6 +194,7 @@
  			reg = <1>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -20,7 +20,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy0>;
  			pcs-handle = <&pcs0_ch0>;
  			clocks = <&nsscc NSS_CC_PORT1_MAC_CLK>,
-@@ -205,6 +206,7 @@
+@@ -214,6 +215,7 @@
  			reg = <2>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -28,7 +28,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy1>;
  			pcs-handle = <&pcs0_ch1>;
  			clocks = <&nsscc NSS_CC_PORT2_MAC_CLK>,
-@@ -225,6 +227,7 @@
+@@ -234,6 +236,7 @@
  			reg = <3>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -36,7 +36,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy2>;
  			pcs-handle = <&pcs0_ch2>;
  			clocks = <&nsscc NSS_CC_PORT3_MAC_CLK>,
-@@ -245,6 +248,7 @@
+@@ -254,6 +257,7 @@
  			reg = <4>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -44,7 +44,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy3>;
  			pcs-handle = <&pcs0_ch3>;
  			clocks = <&nsscc NSS_CC_PORT4_MAC_CLK>,
-@@ -265,6 +269,7 @@
+@@ -274,6 +278,7 @@
  			reg = <5>;
  			phy-mode = "usxgmii";
  			managed = "in-band-status";
@@ -52,7 +52,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy4>;
  			pcs-handle = <&pcs1_ch0>;
  			clocks = <&nsscc NSS_CC_PORT5_MAC_CLK>,
-@@ -285,6 +290,7 @@
+@@ -294,6 +299,7 @@
  			reg = <6>;
  			phy-mode = "usxgmii";
  			managed = "in-band-status";

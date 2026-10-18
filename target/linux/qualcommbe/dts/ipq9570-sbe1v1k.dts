@@ -560,43 +560,38 @@
 	pinctrl-0 = <&pcie1_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
 
-	pcie@0 {
-		device_type = "pci";
+&pcie1_port0 {
+	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
+
+	wifi@0 {
+		compatible = "pci17cb,1109";
 		reg = <0x0 0x0 0x0 0x0 0x0>;
-		#address-cells = <3>;
-		#size-cells = <2>;
-		ranges;
+		qcom,calibration-variant = "Askey-SBE1V1K_1";
 
-		wifi@0 {
-			compatible = "pci17cb,1109";
-			reg = <0x0 0x0 0x0 0x0 0x0>;
-			qcom,calibration-variant = "Askey-SBE1V1K_1";
+		nvmem-cells = <&ethaddr (-3)>;
+		nvmem-cell-names = "mac-address";
 
-			nvmem-cells = <&ethaddr (-3)>;
-			nvmem-cell-names = "mac-address";
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
 
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
+			port@0 {
+				reg = <0>;
 
-				port@0 {
-					reg = <0>;
-
-					wifi1_wsi_tx: endpoint {
-						remote-endpoint = <&wifi2_wsi_rx>;
-					};
+				wifi1_wsi_tx: endpoint {
+					remote-endpoint = <&wifi2_wsi_rx>;
 				};
+			};
 
-				port@1 {
-					reg = <1>;
+			port@1 {
+				reg = <1>;
 
-					wifi1_wsi_rx: endpoint {
-						remote-endpoint = <&wifi3_wsi_tx>;
-					};
+				wifi1_wsi_rx: endpoint {
+					remote-endpoint = <&wifi3_wsi_tx>;
 				};
 			};
 		};
@@ -611,44 +606,39 @@
 	pinctrl-0 = <&pcie2_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
 
-	pcie@0 {
-		device_type = "pci";
-		reg = <0x0 0x0 0x1 0x0 0x0>;
-		#address-cells = <3>;
-		#size-cells = <2>;
-		ranges;
+&pcie2_port0 {
+	reset-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
 
-		wifi@0 {
-			compatible = "pci17cb,1109";
-			reg = <0x0 0x0 0x0 0x0 0x0>;
-			qcom,calibration-variant = "Askey-SBE1V1K_4";
-			qcom,wsi-controller;
+	wifi@0 {
+		compatible = "pci17cb,1109";
+		reg = <0x0 0x0 0x0 0x0 0x0>;
+		qcom,calibration-variant = "Askey-SBE1V1K_4";
+		qcom,wsi-controller;
 
-			nvmem-cells = <&ethaddr (-1)>;
-			nvmem-cell-names = "mac-address";
+		nvmem-cells = <&ethaddr (-1)>;
+		nvmem-cell-names = "mac-address";
 
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
 
-				port@0 {
-					reg = <0>;
+			port@0 {
+				reg = <0>;
 
-					wifi2_wsi_tx: endpoint {
-						remote-endpoint = <&wifi3_wsi_rx>;
-					};
+				wifi2_wsi_tx: endpoint {
+					remote-endpoint = <&wifi3_wsi_rx>;
 				};
+			};
 
-				port@1 {
-					reg = <1>;
+			port@1 {
+				reg = <1>;
 
-					wifi2_wsi_rx: endpoint {
-						remote-endpoint = <&wifi1_wsi_tx>;
-					};
+				wifi2_wsi_rx: endpoint {
+					remote-endpoint = <&wifi1_wsi_tx>;
 				};
 			};
 		};
@@ -663,44 +653,38 @@
 	pinctrl-0 = <&pcie3_default>;
 	pinctrl-names = "default";
 
-	perst-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
 	status = "okay";
+};
 
-	pcie@0,0 {
-		device_type = "pci";
-		reg = <0x0 0x0 0x2 0x0 0x0>;
-		#address-cells = <3>;
-		#size-cells = <2>;
-		ranges;
+&pcie3_port0 {
+	reset-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
 
-		wifi@0 {
+	wifi@0 {
+		compatible = "pci17cb,1109";
+		reg = <0x0 0x0 0x0 0x0 0x0>;
+		qcom,calibration-variant = "Askey-SBE1V1K_2";
 
-			compatible = "pci17cb,1109";
-			reg = <0x0 0x0 0x0 0x0 0x0>;
-			qcom,calibration-variant = "Askey-SBE1V1K_2";
+		nvmem-cells = <&ethaddr (-2)>;
+		nvmem-cell-names = "mac-address";
 
-			nvmem-cells = <&ethaddr (-2)>;
-			nvmem-cell-names = "mac-address";
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
 
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
+			port@0 {
+				reg = <0>;
 
-				port@0 {
-					reg = <0>;
-
-					wifi3_wsi_tx: endpoint {
-						remote-endpoint = <&wifi1_wsi_rx>;
-					};
+				wifi3_wsi_tx: endpoint {
+					remote-endpoint = <&wifi1_wsi_rx>;
 				};
+			};
 
-				port@1 {
-					reg = <1>;
+			port@1 {
+				reg = <1>;
 
-					wifi3_wsi_rx: endpoint {
-						remote-endpoint = <&wifi2_wsi_tx>;
-					};
+				wifi3_wsi_rx: endpoint {
+					remote-endpoint = <&wifi2_wsi_tx>;
 				};
 			};
 		};

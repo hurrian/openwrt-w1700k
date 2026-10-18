@@ -26,7 +26,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  #include <dt-bindings/thermal/thermal.h>
  
  / {
-@@ -1278,6 +1279,44 @@
+@@ -1318,6 +1319,44 @@
  			#interconnect-cells = <1>;
  		};
  
