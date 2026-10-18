@@ -7,12 +7,12 @@ Add label to EDMA port for IPQ9574 RDP433 board.
 
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 ---
- arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts | 6 ++++++
+ arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi | 6 ++++++
  1 file changed, 6 insertions(+)
 
---- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-+++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-@@ -194,6 +194,7 @@
+--- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
++++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
+@@ -184,6 +184,7 @@ port@1 {
  			reg = <1>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -20,7 +20,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy0>;
  			pcs-handle = <&pcs0_ch0>;
  			clocks = <&nsscc NSS_CC_PORT1_MAC_CLK>,
-@@ -214,6 +215,7 @@
+@@ -204,6 +205,7 @@ port@2 {
  			reg = <2>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -28,7 +28,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy1>;
  			pcs-handle = <&pcs0_ch1>;
  			clocks = <&nsscc NSS_CC_PORT2_MAC_CLK>,
-@@ -234,6 +236,7 @@
+@@ -224,6 +226,7 @@ port@3 {
  			reg = <3>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -36,7 +36,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy2>;
  			pcs-handle = <&pcs0_ch2>;
  			clocks = <&nsscc NSS_CC_PORT3_MAC_CLK>,
-@@ -254,6 +257,7 @@
+@@ -244,6 +247,7 @@ port@4 {
  			reg = <4>;
  			phy-mode = "qsgmii";
  			managed = "in-band-status";
@@ -44,7 +44,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy3>;
  			pcs-handle = <&pcs0_ch3>;
  			clocks = <&nsscc NSS_CC_PORT4_MAC_CLK>,
-@@ -274,6 +278,7 @@
+@@ -264,6 +268,7 @@ port@5 {
  			reg = <5>;
  			phy-mode = "usxgmii";
  			managed = "in-band-status";
@@ -52,7 +52,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  			phy-handle = <&phy4>;
  			pcs-handle = <&pcs1_ch0>;
  			clocks = <&nsscc NSS_CC_PORT5_MAC_CLK>,
-@@ -294,6 +299,7 @@
+@@ -284,6 +289,7 @@ port@6 {
  			reg = <6>;
  			phy-mode = "usxgmii";
  			managed = "in-band-status";

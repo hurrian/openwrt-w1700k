@@ -8,12 +8,12 @@ for the Aquantia PHY.
 
 Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 ---
- arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts | 6 ++++++
+ arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi | 6 ++++++
  1 file changed, 6 insertions(+)
 
---- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-+++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-@@ -96,11 +96,17 @@
+--- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
++++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
+@@ -86,11 +86,17 @@ phy3: ethernet-phy@13 {
  	phy4: ethernet-phy@8 {
  		compatible ="ethernet-phy-ieee802.3-c45";
  		reg = <8>;

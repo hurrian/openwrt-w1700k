@@ -14,12 +14,12 @@ Signed-off-by: Lei Wei <quic_leiwei@quicinc.com>
 Alex G: Use "pcs<n>_ch0" labels instead of "pcsuniphy<n>_ch0"
 Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
 ---
- arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts | 167 ++++++++++++++++++++
+ .../boot/dts/qcom/ipq9574-rdp433-common.dtsi  | 167 ++++++++++++++++++
  1 file changed, 167 insertions(+)
 
---- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-+++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
-@@ -64,6 +64,46 @@
+--- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
++++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
+@@ -54,6 +54,46 @@ &pcie3_port0 {
  	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
  };
  
@@ -66,7 +66,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  &tlmm {
  
  	pcie1_default: pcie1-default-state {
-@@ -138,3 +178,130 @@
+@@ -128,3 +168,130 @@ wake-n-pins {
  		};
  	};
  };
