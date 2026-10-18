@@ -17,7 +17,7 @@ Signed-off-by: Satoshi Ikeuchi <satosan.ikm@gmail.com>
 ---
 --- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
-@@ -963,6 +963,117 @@
+@@ -974,6 +974,117 @@
  			};
  		};
  

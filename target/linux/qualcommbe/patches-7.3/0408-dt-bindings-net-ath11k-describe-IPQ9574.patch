@@ -27,10 +27,16 @@ Signed-off-by: Satoshi Ikeuchi <satosan.ikm@gmail.com>
        - qcom,ipq6018-wifi
        - qcom,wcn6750-wifi
        - qcom,ipq5018-wifi
-@@ -217,6 +218,124 @@ allOf:
- 
-   - if:
-       properties:
+@@ -219,6 +220,124 @@ allOf:
+             - const: wbm2host-tx-completions-ring3
+             - const: wbm2host-tx-completions-ring2
+             - const: wbm2host-tx-completions-ring1
++            - const: tcl2host-status-ring
++      required:
++        - interrupt-names
++
++  - if:
++      properties:
 +        compatible:
 +          contains:
 +            const: qcom,ipq9574-wifi
@@ -143,12 +149,6 @@ Signed-off-by: Satoshi Ikeuchi <satosan.ikm@gmail.com>
 +            - const: wbm2host-tx-completions-ring3
 +            - const: wbm2host-tx-completions-ring2
 +            - const: wbm2host-tx-completions-ring1
-+            - const: tcl2host-status-ring
-+      required:
-+        - interrupt-names
-+
-+  - if:
-+      properties:
-         compatible:
-           contains:
-             enum:
+             - const: tcl2host-status-ring
+       required:
+         - interrupt-names

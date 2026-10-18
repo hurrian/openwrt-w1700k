@@ -46,7 +46,7 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 
 --- a/drivers/pwm/pwm-ipq.c
 +++ b/drivers/pwm/pwm-ipq.c
-@@ -89,10 +89,10 @@ static int ipq_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+@@ -89,10 +89,10 @@ static int ipq_pwm_apply(struct pwm_chip
  			 const struct pwm_state *state)
  {
  	struct ipq_pwm_chip *ipq_chip = ipq_pwm_from_chip(chip);
@@ -60,7 +60,7 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
  
  	if (!state->enabled) {
  		/* clear IPQ_PWM_REG1_ENABLE */
-@@ -113,34 +113,85 @@ static int ipq_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+@@ -113,34 +113,85 @@ static int ipq_pwm_apply(struct pwm_chip
  	duty_ns = min(state->duty_cycle, period_ns);
  
  	/*
@@ -95,15 +95,15 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
  	 */
 -	pre_div = mul_u64_u64_div_u64(period_ns, ipq_chip->clk_rate,
 -				      (u64)NSEC_PER_SEC * (pwm_div + 1));
--
--	if (!pre_div)
--		return -ERANGE;
 +	pre_div = div64_u64(period_rate,
 +			    (u64)NSEC_PER_SEC * (IPQ_PWM_MAX_DIV + 1));
-+
+ 
+-	if (!pre_div)
+-		return -ERANGE;
 +	for (; pre_div <= IPQ_PWM_MAX_DIV; pre_div++) {
 +		u64 remainder;
-+
+ 
+-	pre_div -= 1;
 +		pwm_div = div64_u64_rem(period_rate,
 +					(u64)NSEC_PER_SEC * (pre_div + 1),
 +					&remainder);
@@ -132,12 +132,14 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 +		}
 +	}
  
--	pre_div -= 1;
+-	if (pre_div > IPQ_PWM_MAX_DIV)
+-		pre_div = IPQ_PWM_MAX_DIV;
 +	pre_div = best_pre_div;
 +	pwm_div = best_pwm_div;
  
--	if (pre_div > IPQ_PWM_MAX_DIV)
--		pre_div = IPQ_PWM_MAX_DIV;
+-	/* pwm duty = HI_DUR * (PRE_DIV + 1) / clk_rate */
+-	hi_dur = mul_u64_u64_div_u64(duty_ns, ipq_chip->clk_rate,
+-				     (u64)NSEC_PER_SEC * (pre_div + 1));
 +	/*
 +	 * If the search found no usable candidate, best_pwm_div is left at
 +	 * IPQ_PWM_MAX_DIV; cap it so pwm_div + 1 still fits the 16-bit field
@@ -145,10 +147,7 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
 +	 */
 +	if (pwm_div > IPQ_PWM_MAX_DIV - 1)
 +		pwm_div = IPQ_PWM_MAX_DIV - 1;
- 
--	/* pwm duty = HI_DUR * (PRE_DIV + 1) / clk_rate */
--	hi_dur = mul_u64_u64_div_u64(duty_ns, ipq_chip->clk_rate,
--				     (u64)NSEC_PER_SEC * (pre_div + 1));
++
 +	/*
 +	 * high duration = duty_ratio * (pwm_div + 1)
 +	 *              = duty_ns * clk_rate / ((pre_div + 1) * NSEC_PER_SEC)
@@ -167,7 +166,7 @@ Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
  
  	val = FIELD_PREP(IPQ_PWM_REG0_HI_DURATION, hi_dur) |
  		FIELD_PREP(IPQ_PWM_REG0_PWM_DIV, pwm_div);
-@@ -186,7 +237,7 @@ static int ipq_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
+@@ -186,7 +237,7 @@ static int ipq_pwm_get_state(struct pwm_
  	state->period = DIV64_U64_ROUND_UP(effective_div * NSEC_PER_SEC,
  					   ipq_chip->clk_rate);
  

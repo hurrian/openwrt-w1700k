@@ -19,7 +19,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
-@@ -54,6 +54,46 @@ &pcie3_port0 {
+@@ -54,6 +54,46 @@
  	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
  };
  
@@ -66,7 +66,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  &tlmm {
  
  	pcie1_default: pcie1-default-state {
-@@ -128,3 +168,130 @@ wake-n-pins {
+@@ -128,3 +168,130 @@
  		};
  	};
  };

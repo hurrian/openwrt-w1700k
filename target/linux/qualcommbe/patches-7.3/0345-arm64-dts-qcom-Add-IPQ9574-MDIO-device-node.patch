@@ -15,7 +15,7 @@ Signed-off-by: Luo Jie <quic_luoj@quicinc.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
-@@ -297,6 +297,8 @@
+@@ -293,6 +293,8 @@
  		mdio: mdio@90000 {
  			compatible = "qcom,ipq9574-mdio", "qcom,ipq4019-mdio";
  			reg = <0x00090000 0x64>;
@@ -24,7 +24,7 @@ Signed-off-by: Luo Jie <quic_luoj@quicinc.com>
  			#address-cells = <1>;
  			#size-cells = <0>;
  			clocks = <&gcc GCC_MDIO_AHB_CLK>;
-@@ -416,6 +418,22 @@
+@@ -412,6 +414,22 @@
  			interrupt-controller;
  			#interrupt-cells = <2>;
  

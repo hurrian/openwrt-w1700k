@@ -13,7 +13,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574-rdp-common.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp-common.dtsi
-@@ -189,6 +189,35 @@
+@@ -249,6 +249,35 @@
  		nand-ecc-engine = <&qpic_nand>;
  		nand-ecc-strength = <4>;
  		nand-ecc-step-size = <512>;

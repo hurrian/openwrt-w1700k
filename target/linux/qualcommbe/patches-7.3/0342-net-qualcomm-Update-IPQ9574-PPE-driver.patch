@@ -1525,7 +1525,7 @@ Signed-off-by: Balsam CHIHI <balsam.chihi@moment.tech>
   * @avail_pkt: Number of available packets to process
 --- a/drivers/net/ethernet/qualcomm/ppe/ppe.c
 +++ b/drivers/net/ethernet/qualcomm/ppe/ppe.c
-@@ -229,11 +229,9 @@ static void qcom_ppe_remove(struct platf
+@@ -228,11 +228,9 @@ static void qcom_ppe_remove(struct platf
  	struct ppe_device *ppe_dev;
  
  	ppe_dev = platform_get_drvdata(pdev);
@@ -1790,7 +1790,7 @@ Signed-off-by: Balsam CHIHI <balsam.chihi@moment.tech>
   * ppe_queue_ucast_base_set - Set PPE unicast queue base ID and profile ID
   * @ppe_dev: PPE device
   * @queue_dst: PPE queue destination configuration
-@@ -1520,6 +1468,31 @@ int ppe_ring_queue_map_set(struct ppe_de
+@@ -1521,6 +1469,31 @@ int ppe_ring_queue_map_set(struct ppe_de
  				 ARRAY_SIZE(queue_bitmap_val));
  }
  
@@ -1820,7 +1820,7 @@ Signed-off-by: Balsam CHIHI <balsam.chihi@moment.tech>
 +}
 +
  static int ppe_config_bm_threshold(struct ppe_device *ppe_dev, int bm_port_id,
- 				   const struct ppe_bm_port_config port_cfg)
+ 				   struct ppe_bm_port_config port_cfg)
  {
 --- a/drivers/net/ethernet/qualcomm/ppe/ppe_config.h
 +++ b/drivers/net/ethernet/qualcomm/ppe/ppe_config.h

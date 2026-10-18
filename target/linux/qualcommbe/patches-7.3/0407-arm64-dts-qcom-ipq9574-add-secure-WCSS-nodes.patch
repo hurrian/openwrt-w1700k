@@ -26,7 +26,7 @@ Signed-off-by: Satoshi Ikeuchi <satosan.ikm@gmail.com>
   */
  
  #include <dt-bindings/clock/qcom,apss-ipq.h>
-@@ -228,6 +228,35 @@
+@@ -224,6 +224,35 @@
  			hwlocks = <&tcsr_mutex 3>;
  			no-map;
  		};
@@ -62,7 +62,7 @@ Signed-off-by: Satoshi Ikeuchi <satosan.ikm@gmail.com>
  	};
  
  	soc: soc@0 {
-@@ -934,6 +963,36 @@
+@@ -945,6 +974,36 @@
  			};
  		};
  

@@ -19,7 +19,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
 
 --- a/drivers/net/phy/phy_package.c
 +++ b/drivers/net/phy/phy_package.c
-@@ -178,6 +178,12 @@ bool phy_package_probe_once(struct phy_d
+@@ -201,6 +201,12 @@ bool phy_package_probe_once(struct phy_d
  }
  EXPORT_SYMBOL_GPL(phy_package_probe_once);
  
@@ -34,7 +34,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
   * @phydev: target phy_device struct
 --- a/drivers/net/phy/phylib.h
 +++ b/drivers/net/phy/phylib.h
-@@ -23,6 +23,7 @@ int __phy_package_write_mmd(struct phy_d
+@@ -26,6 +26,7 @@ int __phy_package_write_mmd(struct phy_d
  			    u32 regnum, u16 val);
  bool phy_package_init_once(struct phy_device *phydev);
  bool phy_package_probe_once(struct phy_device *phydev);

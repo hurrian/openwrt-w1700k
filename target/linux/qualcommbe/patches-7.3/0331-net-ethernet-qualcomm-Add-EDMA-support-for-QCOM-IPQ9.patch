@@ -646,7 +646,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  #include "ppe.h"
  #include "ppe_config.h"
  #include "ppe_debugfs.h"
-@@ -206,10 +207,16 @@ static int qcom_ppe_probe(struct platfor
+@@ -205,10 +206,16 @@ static int qcom_ppe_probe(struct platfor
  	if (ret)
  		return dev_err_probe(dev, ret, "PPE HW config failed\n");
  
@@ -664,7 +664,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
  
  	ppe_debugfs_setup(ppe_dev);
  	platform_set_drvdata(pdev, ppe_dev);
-@@ -224,6 +231,7 @@ static void qcom_ppe_remove(struct platf
+@@ -223,6 +230,7 @@ static void qcom_ppe_remove(struct platf
  	ppe_dev = platform_get_drvdata(pdev);
  	ppe_debugfs_teardown(ppe_dev);
  	ppe_port_mac_deinit(ppe_dev);

@@ -16,7 +16,7 @@ Signed-off-by: Alexandru Gagniuc <mr.nuke.me@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
-@@ -1355,6 +1355,145 @@
+@@ -1384,6 +1384,145 @@
  					     "nssnoc_memnoc",
  					     "memnoc_nssnoc",
  					     "memnoc_nssnoc_1";

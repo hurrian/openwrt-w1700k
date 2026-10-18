@@ -13,7 +13,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433-common.dtsi
-@@ -86,11 +86,17 @@ phy3: ethernet-phy@13 {
+@@ -86,11 +86,17 @@
  	phy4: ethernet-phy@8 {
  		compatible ="ethernet-phy-ieee802.3-c45";
  		reg = <8>;

@@ -13,11 +13,11 @@ Signed-off-by: Robert Marko <robert.marko@sartura.hr>
 
 --- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
-@@ -465,6 +465,7 @@
+@@ -471,6 +471,7 @@
  				 <&xo_board_clk>,
  				 <&gcc GCC_SDCC1_ICE_CORE_CLK>;
  			clock-names = "iface", "core", "xo", "ice";
 +			resets = <&gcc GCC_SDCC_BCR>;
  			non-removable;
  			supports-cqe;
- 			status = "disabled";
+ 			pinctrl-0 = <&sdc_default_state>;
