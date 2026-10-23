@@ -252,7 +252,7 @@ $(eval $(call KernelPackage,mdio-devres))
 define KernelPackage/mdio-gpio
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:= Supports GPIO lib-based MDIO busses
-  DEPENDS:=+kmod-libphy @GPIO_SUPPORT +(TARGET_armsr||TARGET_bcm27xx_bcm2708||TARGET_econet||TARGET_loongarch64||TARGET_malta||TARGET_tegra):kmod-of-mdio
+  DEPENDS:=+kmod-libphy @GPIO_SUPPORT +(TARGET_airoha||TARGET_armsr||TARGET_bcm27xx_bcm2708||TARGET_econet||TARGET_loongarch64||TARGET_malta||TARGET_tegra):kmod-of-mdio
   KCONFIG:= \
 	CONFIG_MDIO_BITBANG \
 	CONFIG_MDIO_GPIO
@@ -637,6 +637,77 @@ define KernelPackage/phy-airoha-en8811h/description
 endef
 
 $(eval $(call KernelPackage,phy-airoha-en8811h))
+
+
+define KernelPackage/airoha-npu
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Airoha Network Processor Unit support
+  DEPENDS:=@TARGET_airoha +airoha-en7581-mt7996-npu-firmware
+  KCONFIG:=CONFIG_NET_AIROHA_NPU
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/airoha/airoha_npu.ko
+  AUTOLOAD:=$(call AutoLoad,40,airoha_npu,1)
+endef
+
+define KernelPackage/airoha-npu/description
+  Kernel module for Airoha Network Processor Unit (NPU).
+  Required for PPE hardware flow offloading and WiFi WED offloading.
+endef
+
+$(eval $(call KernelPackage,airoha-npu))
+
+
+define KernelPackage/airoha-eth
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Airoha SoC Gigabit Ethernet support
+  DEPENDS:=@TARGET_airoha +kmod-airoha-npu +kmod-of-mdio
+  KCONFIG:=CONFIG_NET_AIROHA
+  FILES:=$(LINUX_DIR)/drivers/net/ethernet/airoha/airoha-eth.ko
+  AUTOLOAD:=$(call AutoLoad,41,airoha-eth,1)
+endef
+
+define KernelPackage/airoha-eth/description
+  Kernel module for Airoha SoC Gigabit Ethernet.
+  Includes PPE (Packet Processing Engine) for hardware offloading.
+endef
+
+$(eval $(call KernelPackage,airoha-eth))
+
+
+define KernelPackage/dsa-mt7530
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MediaTek MT7530/MT7531 DSA switch
+  DEPENDS:=@TARGET_airoha +kmod-dsa +kmod-libphy +kmod-mdio-devres
+  KCONFIG:=CONFIG_NET_DSA_MT7530
+  FILES:=$(LINUX_DIR)/drivers/net/dsa/mt7530.ko
+  AUTOLOAD:=$(call AutoLoad,42,mt7530,1)
+endef
+
+define KernelPackage/dsa-mt7530/description
+  Kernel module for MediaTek MT7530/MT7531 Gigabit switch.
+  This is the core switch driver.
+endef
+
+$(eval $(call KernelPackage,dsa-mt7530))
+
+
+define KernelPackage/dsa-mt7530-mmio
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=MediaTek MT7530 MMIO interface driver
+  DEPENDS:=@TARGET_airoha +kmod-dsa-mt7530 +kmod-airoha-eth
+  KCONFIG:=CONFIG_NET_DSA_MT7530_MMIO
+  FILES:=$(LINUX_DIR)/drivers/net/dsa/mt7530-mmio.ko
+  AUTOLOAD:=$(call AutoLoad,43,mt7530-mmio,1)
+  DEFAULT:=y if TARGET_airoha_an7581
+endef
+
+define KernelPackage/dsa-mt7530-mmio/description
+  Kernel module for MediaTek MT7530 DSA switch with MMIO interface.
+  Used on Airoha EN7581 SoC with built-in switch.
+endef
+
+$(eval $(call KernelPackage,dsa-mt7530-mmio))
+
+
 
 
 define KernelPackage/phy-aquantia
