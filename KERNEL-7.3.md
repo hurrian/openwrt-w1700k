@@ -2,6 +2,13 @@
 
 Branch: `kernel-7.3`, based on vanilla upstream (`origin` = openwrt/openwrt).
 Push: `git push graysky2 kernel-7.3` (add `--force-with-lease` after a rebase).
+
+Reminder (tmpfs workdir):
+- Commits live only in tmpfs until pushed. Don't reboot before pushing.
+- After Claude commits, push from the host: `git push graysky2 kernel-7.3`
+  (`--force-with-lease` only if Claude says it rebased).
+- Don't touch the tree while a build is running.
+
 Model: the 6.18 bring-up (generic by namiltd, x86 by graysky2), Nov 2025 to Apr 2026.
 
 ## Steps
@@ -88,6 +95,10 @@ once x86/64 is green: symbols + enable testing kernel, two commits.
   (7.3_rc6.1.14), now 7.3.1.14_rc6. Not 7.3 specific, upstreamable on its own.
   Version gates use 7.3 (verified absent in 6.18; exact upstream release not checked).
   Sandbox: 8 GB memcg OOM and 4096 pids cap both broke builds; now 64 GB / 8192.
+- 2026-10-23: bumped to 7.3 final (released 2026-10-18, no 7.3.1 yet).
+  Final uses an empty suffix (`LINUX_VERSION-7.3 =`, as 4.3 did), so the
+  tarball is linux-7.3.tar.xz from kernel.org. Refresh: offsets only (7 patches),
+  no patch dropped, listnewconfig unchanged.
 
 ## Broken packages (TODO)
 
