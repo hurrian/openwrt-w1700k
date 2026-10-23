@@ -21,7 +21,7 @@ Signed-off-by: Daniel Pawlik <pawlik.dan@gmail.com>
 ---
 --- a/include/net/netfilter/nf_flow_table.h
 +++ b/include/net/netfilter/nf_flow_table.h
-@@ -327,6 +327,7 @@ void nf_flow_table_gc_cleanup(struct nf_flowtable *flowtable,
+@@ -325,6 +325,7 @@ void nf_flow_table_gc_cleanup(struct nf_flowtable *flowtable,
  			      struct net_device *dev);
  void nf_flow_table_cleanup(struct net_device *dev);
  
@@ -38,8 +38,8 @@ Signed-off-by: Daniel Pawlik <pawlik.dan@gmail.com>
 +#include <linux/etherdevice.h>
  #include <net/ip.h>
  #include <net/ip6_route.h>
- #include <net/netfilter/nf_flow_table.h>
-@@ -532,6 +533,43 @@ void flow_offload_teardown_by_tuple(const struct flow_offload_tuple *tuple,
+ #include <net/netfilter/nf_tables.h>
+@@ -534,6 +535,43 @@ void flow_offload_teardown_by_tuple(const struct flow_offload_tuple *tuple,
  }
  EXPORT_SYMBOL_GPL(flow_offload_teardown_by_tuple);
  
