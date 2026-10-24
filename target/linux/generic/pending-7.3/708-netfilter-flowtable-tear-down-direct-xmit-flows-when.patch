@@ -28,6 +28,8 @@ Co-developed-by: Pablo Neira Ayuso <pablo@netfilter.org>
 Signed-off-by: Pablo Neira Ayuso <pablo@netfilter.org>
 Assisted-by: Claude:claude-opus-5-5
 Signed-off-by: Julius Bairaktaris <julius@bairaktaris.de>
+[adapted to 7.3: fdb->dst is a plain pointer there, without the
+br_fdb_dst_port() accessor that nf-next has, so read it with READ_ONCE()]
 ---
 Assisted-by covers my changes on top of Pablo's patch.
 
@@ -148,7 +150,7 @@ index 0000000000000..300bce6c1b0b8
 +	/* Offloaded packets do not refresh the entry, it can age out. */
 +	f = br_fdb_find_rcu(p->br, addr, vid);
 +
-+	return !f || br_fdb_dst_port(f) == p;
++	return !f || READ_ONCE(f->dst) == p;
 +}
 +
 +static const struct nf_br_utils nf_br_utils = {
