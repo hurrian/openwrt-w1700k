@@ -1,0 +1,192 @@
+From b99a594cfdd0862709ec54bdc356360e332377f6 Mon Sep 17 00:00:00 2001
+From: Kathiravan Thirumoorthy <kathiravan.thirumoorthy@oss.qualcomm.com>
+Date: Tue, 14 Jul 2026 10:11:23 +0530
+Subject: [PATCH] arm64: dts: qcom: ipq9574: Add PCIe bridge node
+
+The PCIe host bridge is connected to a single PCIe bridge for each
+controller instance. Hence, add a node to represent the bridge.
+
+While at it, to align with the newer style of binding, move the phys and
+perst to port node.
+
+Reviewed-by: Manivannan Sadhasivam <mani@kernel.org>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Signed-off-by: Kathiravan Thirumoorthy <kathiravan.thirumoorthy@oss.qualcomm.com>
+Link: https://lore.kernel.org/r/20260714-pcie_move_to_new_binding-v1-4-6bb25887a0dc@oss.qualcomm.com
+Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+---
+ arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts | 33 +++++++-----
+ arch/arm64/boot/dts/qcom/ipq9574.dtsi       | 56 ++++++++++++++++++---
+ 2 files changed, 69 insertions(+), 20 deletions(-)
+
+--- a/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
++++ b/arch/arm64/boot/dts/qcom/ipq9574-rdp433.dts
+@@ -16,45 +16,54 @@
+ 	compatible = "qcom,ipq9574-ap-al02-c7", "qcom,ipq9574";
+ };
+ 
+-&pcie1_phy {
+-	status = "okay";
+-};
+-
+ &pcie1 {
+ 	pinctrl-0 = <&pcie1_default>;
+ 	pinctrl-names = "default";
+ 
+-	perst-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
+-	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
+ 	status = "okay";
+ };
+ 
+-&pcie2_phy {
++&pcie1_phy {
+ 	status = "okay";
+ };
+ 
++&pcie1_port0 {
++	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
++	wake-gpios = <&tlmm 27 GPIO_ACTIVE_LOW>;
++};
++
+ &pcie2 {
+ 	pinctrl-0 = <&pcie2_default>;
+ 	pinctrl-names = "default";
+ 
+-	perst-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
+-	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
+ 	status = "okay";
+ };
+ 
+-&pcie3_phy {
++&pcie2_phy {
+ 	status = "okay";
+ };
+ 
++&pcie2_port0 {
++	reset-gpios = <&tlmm 29 GPIO_ACTIVE_LOW>;
++	wake-gpios = <&tlmm 30 GPIO_ACTIVE_LOW>;
++};
++
+ &pcie3 {
+ 	pinctrl-0 = <&pcie3_default>;
+ 	pinctrl-names = "default";
+ 
+-	perst-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
+-	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
+ 	status = "okay";
+ };
+ 
++&pcie3_phy {
++	status = "okay";
++};
++
++&pcie3_port0 {
++	reset-gpios = <&tlmm 32 GPIO_ACTIVE_LOW>;
++	wake-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
++};
++
+ &tlmm {
+ 
+ 	pcie1_default: pcie1-default-state {
+--- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
++++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
+@@ -982,12 +982,22 @@
+ 				      "aux",
+ 				      "ahb";
+ 
+-			phys = <&pcie1_phy>;
+-			phy-names = "pciephy";
+ 			interconnects = <&gcc MASTER_ANOC_PCIE1 &gcc SLAVE_ANOC_PCIE1>,
+ 					<&gcc MASTER_SNOC_PCIE1 &gcc SLAVE_SNOC_PCIE1>;
+ 			interconnect-names = "pcie-mem", "cpu-pcie";
+ 			status = "disabled";
++
++			pcie1_port0: pcie@0 {
++				device_type = "pci";
++				reg = <0x0 0x0 0x0 0x0 0x0>;
++				bus-range = <0x01 0xff>;
++
++				phys = <&pcie1_phy>;
++
++				#address-cells = <3>;
++				#size-cells = <2>;
++				ranges;
++			};
+ 		};
+ 
+ 		pcie3: pcie@18000000 {
+@@ -1068,12 +1078,22 @@
+ 				      "aux",
+ 				      "ahb";
+ 
+-			phys = <&pcie3_phy>;
+-			phy-names = "pciephy";
+ 			interconnects = <&gcc MASTER_ANOC_PCIE3 &gcc SLAVE_ANOC_PCIE3>,
+ 					<&gcc MASTER_SNOC_PCIE3 &gcc SLAVE_SNOC_PCIE3>;
+ 			interconnect-names = "pcie-mem", "cpu-pcie";
+ 			status = "disabled";
++
++			pcie3_port0: pcie@0 {
++				device_type = "pci";
++				reg = <0x0 0x0 0x0 0x0 0x0>;
++				bus-range = <0x01 0xff>;
++
++				phys = <&pcie3_phy>;
++
++				#address-cells = <3>;
++				#size-cells = <2>;
++				ranges;
++			};
+ 		};
+ 
+ 		pcie2: pcie@20000000 {
+@@ -1154,12 +1174,22 @@
+ 				      "aux",
+ 				      "ahb";
+ 
+-			phys = <&pcie2_phy>;
+-			phy-names = "pciephy";
+ 			interconnects = <&gcc MASTER_ANOC_PCIE2 &gcc SLAVE_ANOC_PCIE2>,
+ 					<&gcc MASTER_SNOC_PCIE2 &gcc SLAVE_SNOC_PCIE2>;
+ 			interconnect-names = "pcie-mem", "cpu-pcie";
+ 			status = "disabled";
++
++			pcie2_port0: pcie@0 {
++				device_type = "pci";
++				reg = <0x0 0x0 0x0 0x0 0x0>;
++				bus-range = <0x01 0xff>;
++
++				phys = <&pcie2_phy>;
++
++				#address-cells = <3>;
++				#size-cells = <2>;
++				ranges;
++			};
+ 		};
+ 
+ 		pcie0: pcie@28000000 {
+@@ -1239,12 +1269,22 @@
+ 				      "aux",
+ 				      "ahb";
+ 
+-			phys = <&pcie0_phy>;
+-			phy-names = "pciephy";
+ 			interconnects = <&gcc MASTER_ANOC_PCIE0 &gcc SLAVE_ANOC_PCIE0>,
+ 					<&gcc MASTER_SNOC_PCIE0 &gcc SLAVE_SNOC_PCIE0>;
+ 			interconnect-names = "pcie-mem", "cpu-pcie";
+ 			status = "disabled";
++
++			pcie0_port0: pcie@0 {
++				device_type = "pci";
++				reg = <0x0 0x0 0x0 0x0 0x0>;
++				bus-range = <0x01 0xff>;
++
++				phys = <&pcie0_phy>;
++
++				#address-cells = <3>;
++				#size-cells = <2>;
++				ranges;
++			};
+ 		};
+ 
+ 		nsscc: clock-controller@39b00000 {
