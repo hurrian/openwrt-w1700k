@@ -1,0 +1,85 @@
+From: Kenneth Kasilag <kenneth@kasilag.me>
+Date: Sat, 24 Oct 2026 15:00:00 +0800
+Subject: [PATCH] wifi: ath12k: add flush_sta to flush only the station's frames
+
+When a station is no longer authorized and the driver does not
+implement flush_sta(), mac80211 falls back to ieee80211_flush_queues(),
+which stops all traffic and waits for every hardware queue to drain. On
+a busy AP this stalls the other stations and logs "failed to flush
+transmit queue".
+
+Implement flush_sta() with WMI_PEER_FLUSH_TIDS, which ath12k already
+supports but did not use. A station can have several links, each with
+its own radio, vdev and link address, so flush the peer on every active
+link of the station.
+
+Port of the ath11k fix by Florian Maurer and Benjamin Berg
+(openwrt/openwrt#20293).
+
+Signed-off-by: Kenneth Kasilag <kenneth@kasilag.me>
+---
+--- a/drivers/net/wireless/ath/ath12k/mac.c
++++ b/drivers/net/wireless/ath/ath12k/mac.c
+@@ -12712,6 +12712,41 @@ void ath12k_mac_op_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ }
+ EXPORT_SYMBOL(ath12k_mac_op_flush);
+ 
++void ath12k_mac_op_flush_sta(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++			     struct ieee80211_sta *sta)
++{
++	struct ath12k_sta *ahsta = ath12k_sta_to_ahsta(sta);
++	struct ath12k_link_sta *arsta;
++	struct ath12k_link_vif *arvif;
++	unsigned long links;
++	u8 link_id;
++	int ret;
++
++	lockdep_assert_wiphy(hw->wiphy);
++
++	/* Flush only this station's frames, link by link, instead of letting
++	 * mac80211 fall back to flushing every hardware queue.
++	 */
++	links = ahsta->links_map;
++	for_each_set_bit(link_id, &links, IEEE80211_MLD_MAX_NUM_LINKS) {
++		arsta = wiphy_dereference(hw->wiphy, ahsta->link[link_id]);
++		if (!arsta)
++			continue;
++
++		arvif = arsta->arvif;
++		if (!(arvif && arvif->ar && arvif->is_created))
++			continue;
++
++		ret = ath12k_wmi_send_peer_flush_tids_cmd(arvif->ar, arsta->addr,
++							  0xFF, arvif->vdev_id);
++		if (ret)
++			ath12k_warn(arvif->ar->ab,
++				    "failed to flush sta %pM link %u: %d\n",
++				    arsta->addr, link_id, ret);
++	}
++}
++EXPORT_SYMBOL(ath12k_mac_op_flush_sta);
++
+ static int
+ ath12k_mac_bitrate_mask_num_ht_rates(struct ath12k *ar,
+ 				     enum nl80211_band band,
+--- a/drivers/net/wireless/ath/ath12k/mac.h
++++ b/drivers/net/wireless/ath/ath12k/mac.h
+@@ -307,6 +307,8 @@ int ath12k_mac_op_get_survey(struct ieee80211_hw *hw, int idx,
+ 			     struct survey_info *survey);
+ void ath12k_mac_op_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ 			 u32 queues, bool drop);
++void ath12k_mac_op_flush_sta(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++			     struct ieee80211_sta *sta);
+ void ath12k_mac_op_sta_statistics(struct ieee80211_hw *hw,
+ 				  struct ieee80211_vif *vif,
+ 				  struct ieee80211_sta *sta,
+--- a/drivers/net/wireless/ath/ath12k/wifi7/hw.c
++++ b/drivers/net/wireless/ath/ath12k/wifi7/hw.c
+@@ -1150,6 +1150,7 @@ static const struct ieee80211_ops ath12k_ops_wifi7 = {
+ 	.set_bitrate_mask		= ath12k_mac_op_set_bitrate_mask,
+ 	.get_survey			= ath12k_mac_op_get_survey,
+ 	.flush				= ath12k_mac_op_flush,
++	.flush_sta			= ath12k_mac_op_flush_sta,
+ 	.sta_statistics			= ath12k_mac_op_sta_statistics,
+ 	.link_sta_statistics		= ath12k_mac_op_link_sta_statistics,
+ 	.remain_on_channel              = ath12k_mac_op_remain_on_channel,
